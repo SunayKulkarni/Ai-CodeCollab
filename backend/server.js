@@ -105,6 +105,16 @@ io.on('connection', (socket) => {
             const { message, sender, projectId } = data;
 
             // Save the message to the database
+            console.log('Attempting to save message to database:', {
+                projectId,
+                message,
+                sender: {
+                    _id: sender._id,
+                    email: sender.email,
+                    type: 'user'
+                }
+            });
+
             const savedMessage = await chatModel.create({
                 projectId,
                 message,
@@ -115,7 +125,11 @@ io.on('connection', (socket) => {
                 },
                 timestamp: new Date()
             });
-            console.log('Saved message to database:', savedMessage);
+            console.log('Successfully saved message to database:', savedMessage);
+
+            // Verify the message was saved by querying it
+            const verifyMessage = await chatModel.findById(savedMessage._id);
+            console.log('Verified saved message:', verifyMessage);
 
             // Broadcast the message to all clients in the project room
             io.to(projectId).emit('project-message', savedMessage);
@@ -129,6 +143,7 @@ io.on('connection', (socket) => {
                     console.log('AI generated response:', aiResponse);
 
                     // Save AI response to database
+                    console.log('Saving AI response to database...');
                     const aiMessage = await chatModel.create({
                         projectId,
                         message: aiResponse,
@@ -139,7 +154,11 @@ io.on('connection', (socket) => {
                         },
                         timestamp: new Date()
                     });
-                    console.log('Saved AI response to database:', aiMessage);
+                    console.log('Successfully saved AI response to database:', aiMessage);
+
+                    // Verify AI message was saved
+                    const verifyAiMessage = await chatModel.findById(aiMessage._id);
+                    console.log('Verified saved AI message:', verifyAiMessage);
 
                     // Broadcast AI response to all clients
                     io.to(projectId).emit('project-message', aiMessage);
@@ -161,6 +180,34 @@ io.on('connection', (socket) => {
             }
         } catch (error) {
             console.error('Error handling project message:', error);
+        }
+    });
+
+    // When a user connects, send them the chat history
+    socket.on('join-project', async (projectId) => {
+        try {
+            console.log('User joining project:', projectId);
+            socket.join(projectId);
+            
+            // Fetch chat history from database
+            console.log('Fetching chat history for project:', projectId);
+            const chatHistory = await chatModel.find({ projectId })
+                .sort({ timestamp: 1 })
+                .populate('sender._id', 'email _id');
+                
+            console.log('Found chat history:', {
+                count: chatHistory.length,
+                messages: chatHistory.map(msg => ({
+                    id: msg._id,
+                    message: msg.message,
+                    sender: msg.sender,
+                    timestamp: msg.timestamp
+                }))
+            });
+            
+            socket.emit('chat-history', chatHistory);
+        } catch (error) {
+            console.error('Error fetching chat history:', error);
         }
     });
 
