@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors'
 import projectRoutes from './routes/project.routes.js'
 import aiRoutes from './routes/ai.routes.js'
+import testRoutes from './routes/test.routes.js'
 
 connect();
 
@@ -34,6 +35,8 @@ app.use('/users', userRoutes)
 app.use('/projects', projectRoutes)
 
 app.use('/ai', aiRoutes)
+
+app.use('/test', testRoutes)
 
 app.use(cookieParser()) // middleware for parsing cookies
 
