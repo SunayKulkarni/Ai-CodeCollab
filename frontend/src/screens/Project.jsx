@@ -73,6 +73,13 @@ const Project = () => {
         if (!message.trim()) return; // Don't send empty messages
         
         console.log('Sending message:', { message, sender: user });
+        // Add message to local state immediately for better UX
+        setMessages(prevMessages => [...prevMessages, {
+            message,
+            sender: user,
+            type: 'outgoing',
+            timestamp: new Date()
+        }]);
         sendMessage('project-message', {
             message,
             sender: user,
