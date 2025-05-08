@@ -21,7 +21,7 @@ const UserAuth = ({ children }) => {
                 const res = await axios.get('/users/profile');
                 console.log('Profile response:', res.data);
                 
-                if (res.data && res.data.user) {
+                if (res.data && res.data.user && res.data.user._id) {
                     console.log('Setting user data:', res.data.user);
                     setUser(res.data.user);
                 } else {
@@ -39,7 +39,7 @@ const UserAuth = ({ children }) => {
         validateToken();
     }, [token, navigate, setUser]);
     
-    if (!user) {
+    if (!user || !user._id) {
         return (
             <div className="min-h-screen bg-gray-900 flex items-center justify-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
