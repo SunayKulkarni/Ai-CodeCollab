@@ -9,11 +9,12 @@ import chatModel from './models/chat.model.js'
 import { generateResult } from './services/ai.service.js'
 dotenv.config()
 
-
 const port = process.env.PORT || 3000;
 
+// Create HTTP server
 const server = http.createServer(app)
 
+// Socket.IO configuration
 const io = new Server(server, {
     cors: {
         origin: process.env.NODE_ENV === 'production'
@@ -24,7 +25,8 @@ const io = new Server(server, {
     },
 })
 
-io.use( async(socket, next) => {
+// Socket.IO middleware
+io.use(async(socket, next) => {
     try{
         const token = socket.handshake.auth?.token || socket.handshake.headers.authorization?.split(' ')[1];
         const projectId = socket.handshake.query.projectId;
@@ -52,6 +54,7 @@ io.use( async(socket, next) => {
     }
 });
 
+// Socket.IO connection handling
 io.on('connection', (socket) => {
     socket.roomId = socket.project._id.toString();
 
@@ -91,7 +94,7 @@ io.on('connection', (socket) => {
                 const prompt = data.message.replace('@ai', '');
                 const result = await generateResult(prompt);
                 
-                // Save AI response to database without _id
+                // Save AI response to database
                 const aiMessage = new chatModel({
                     projectId: socket.project._id,
                     message: result,
@@ -121,8 +124,12 @@ io.on('connection', (socket) => {
     });
 });
 
-server.listen(3000, ()=>{
+// Start server
+server.listen(port, () => {
     console.log(`Server is running on port ${port}.`)
 })
+
+// Export for Vercel
+export default server
 
  
