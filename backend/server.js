@@ -7,7 +7,7 @@ import mongoose from 'mongoose'
 import projectModal from './models/project.model.js'
 import chatModel from './models/chat.model.js'
 import { generateResult } from './services/ai.service.js'
-import Message from './models/message.model'
+import Message from './models/message.model.js'
 dotenv.config()
 
 const port = process.env.PORT || 3000;
@@ -83,9 +83,9 @@ io.on('connection', (socket) => {
         console.log(`Socket ${socket.id} joined room: ${projectId}`);
 
         // Send chat history when user connects
-        Message.find({ project: projectId })
+        chatModel.find({ projectId: projectId })
             .sort({ timestamp: 1 })
-            .populate('sender', 'email _id')
+            .populate('sender._id', 'email _id')
             .then(messages => {
                 console.log('Sending chat history:', messages);
                 socket.emit('chat-history', messages);
@@ -102,11 +102,15 @@ io.on('connection', (socket) => {
             console.log('Message details:', { message, sender });
 
             // Store message in database
-            const newMessage = new Message({
-                project: projectId,
-                sender: sender._id,
-                content: message,
-                type: 'text'
+            const newMessage = new chatModel({
+                projectId: projectId,
+                message: message,
+                sender: {
+                    _id: sender._id,
+                    email: sender.email,
+                    type: 'user'
+                },
+                timestamp: new Date()
             });
 
             await newMessage.save();
@@ -114,7 +118,12 @@ io.on('connection', (socket) => {
 
             // Broadcast to all clients in the project room
             io.to(projectId).emit('project-message', {
-                ...data,
+                message: message,
+                sender: {
+                    _id: sender._id,
+                    email: sender.email,
+                    type: 'user'
+                },
                 timestamp: new Date()
             });
             console.log('Message broadcasted to room:', projectId);
@@ -130,20 +139,22 @@ io.on('connection', (socket) => {
                     console.log('AI response:', result);
 
                     // Save AI response to database
-                    const aiMessage = new Message({
-                        project: projectId,
-                        sender: sender._id, // Use the same sender for AI responses
-                        content: result,
-                        type: 'ai'
+                    const aiMessage = new chatModel({
+                        projectId: projectId,
+                        message: result,
+                        sender: {
+                            email: 'AI',
+                            type: 'ai'
+                        },
+                        timestamp: new Date()
                     });
                     await aiMessage.save();
                     console.log('AI message saved to database');
 
-                    // Broadcast AI response
+                    // Broadcast AI response to all clients in the project room
                     io.to(projectId).emit('project-message', {
                         message: result,
                         sender: {
-                            _id: sender._id,
                             email: 'AI',
                             type: 'ai'
                         },
@@ -161,8 +172,23 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Add user presence tracking
+    socket.on('user-joined', (userData) => {
+        console.log('User joined:', userData);
+        io.to(projectId).emit('user-joined', {
+            userId: userData._id,
+            email: userData.email,
+            timestamp: new Date()
+        });
+    });
+
     socket.on('disconnect', () => {
         console.log('Client disconnected:', socket.id);
+        // Notify other users about the disconnection
+        io.to(projectId).emit('user-left', {
+            socketId: socket.id,
+            timestamp: new Date()
+        });
     });
 
     socket.on('error', (error) => {
