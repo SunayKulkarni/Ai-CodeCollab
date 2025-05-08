@@ -14,14 +14,14 @@ const Register = ()=> {
 
   async function submitHandler(e) {
     e.preventDefault();
+    console.log('Registration form submitted');
+    console.log('API URL:', import.meta.env.VITE_API_URL);
+    
     setError("");
     setIsLoading(true);
 
-    console.log('Form submitted');
-    console.log('API URL:', import.meta.env.VITE_API_URL);
-    console.log('Attempting registration with:', { email, password });
-
     try {
+      console.log('Attempting registration with:', { email, password });
       const res = await axios.post('/users/register', { 
           email, 
           password 
@@ -68,7 +68,10 @@ const Register = ()=> {
               type="email"
               className="w-full p-2 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                console.log('Email changed:', e.target.value);
+                setEmail(e.target.value);
+              }}
               required
             />
           </div>
@@ -78,7 +81,10 @@ const Register = ()=> {
               type="password"
               className="w-full p-2 bg-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                console.log('Password changed');
+                setPassword(e.target.value);
+              }}
               required
             />
           </div>

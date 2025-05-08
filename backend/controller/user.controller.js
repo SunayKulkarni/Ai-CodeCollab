@@ -4,23 +4,30 @@ import { validationResult } from 'express-validator'
 import redisClient from '../services/redis.service.js';
 
 export const createUserController = async (req, res) => {
+    console.log('Registration request received:', { body: req.body });
     const errors = validationResult(req)
 
     if (!errors.isEmpty()) {
+        console.log('Validation errors:', errors.array());
         return res.status(400).json({ errors: errors.array() });
     }
 
     try {
+        console.log('Creating user with data:', req.body);
         const user = await userService.createUser(req.body);
+        console.log('User created successfully:', { id: user._id, email: user.email });
         
         const token = await user.generateJWT()
+        console.log('JWT token generated');
 
         delete user._doc.password; // remove password from response
+        console.log('Password removed from response');
 
-        // res.status(201).send(user, token);
         res.status(200).json({ user, token });
+        console.log('Registration response sent');
     }
     catch (error) {
+        console.error('Registration error:', error);
         res.status(400).send(error.message);
     }
 }

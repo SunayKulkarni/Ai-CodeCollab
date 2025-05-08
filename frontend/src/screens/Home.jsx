@@ -83,25 +83,44 @@ const Home = () => {
   }, []);
 
   const filteredProjects = projects.filter(project => {
+    console.log('Filtering project:', project);
+    console.log('Current user:', user);
+    
     const userId = user._id;
     // Handle both populated and non-populated user objects
-    const users = project.users.map(u => (typeof u === 'object' ? u._id : u));
+    const users = project.users.map(u => {
+      console.log('User in project:', u);
+      return typeof u === 'object' ? u._id : u;
+    });
+    
+    console.log('Project users:', users);
+    console.log('Current user ID:', userId);
+    
     const matchesSearch = project.name.toLowerCase().includes(searchQuery.toLowerCase());
 
     if (filter === 'all') {
       // All projects where user is a member (owner or collaborator)
-      return users.includes(userId) && matchesSearch;
+      const isMember = users.includes(userId);
+      console.log('Is member:', isMember);
+      return isMember && matchesSearch;
     }
     if (filter === 'owned') {
       // Projects where user is the owner (first in users array)
-      return users[0] === userId && matchesSearch;
+      const isOwner = users[0] === userId;
+      console.log('Is owner:', isOwner);
+      return isOwner && matchesSearch;
     }
     if (filter === 'shared') {
       // Projects where user is a collaborator (not owner, but in users)
-      return users.includes(userId) && users[0] !== userId && matchesSearch;
+      const isCollaborator = users.includes(userId) && users[0] !== userId;
+      console.log('Is collaborator:', isCollaborator);
+      return isCollaborator && matchesSearch;
     }
     return matchesSearch;
   });
+
+  // Add this console log to see the final filtered projects
+  console.log('Filtered projects:', filteredProjects);
 
   return (
     <main className='min-h-screen bg-slate-900 p-6'>
