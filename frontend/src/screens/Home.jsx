@@ -28,12 +28,21 @@ const Home = () => {
     setError(null)
 
     try {
+      console.log('Creating project:', projectName);
       const res = await axios.post('/projects/create', {
         name: projectName.trim()
       })
       
+      console.log('Create project response:', res.data);
+      
       if (res.data && res.data.project) {
-        setProjects(prev => [res.data.project, ...prev])
+        // Update projects state with the new project
+        setProjects(prevProjects => {
+          console.log('Previous projects:', prevProjects);
+          const updatedProjects = [res.data.project, ...prevProjects];
+          console.log('Updated projects:', updatedProjects);
+          return updatedProjects;
+        });
         setIsModalOpen(false)
         setProjectName('')
       } else {
@@ -53,11 +62,14 @@ const Home = () => {
       setIsLoading(true);
       setError(null);
       try {
+        console.log('Fetching projects...');
         const res = await axios.get('/projects/all');
+        console.log('Projects response:', res.data);
         if (res.data && res.data.projects) {
           setProjects(res.data.projects);
         }
       } catch (err) {
+        console.error('Fetch projects error:', err);
         setError('Failed to fetch projects');
       } finally {
         setIsLoading(false);

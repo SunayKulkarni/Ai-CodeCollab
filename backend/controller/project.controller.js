@@ -16,10 +16,11 @@ export const createProject = async (req, res) => {
         const newProject = await projectService.createProject({ name, userId })
         // Fetch the full project with populated users
         const fullProject = await projectModel.findById(newProject._id).populate('users');
+        console.log('Created project:', fullProject);
         res.status(201).json({ project: fullProject });
     }
     catch(err){
-        console.log(err)
+        console.error('Create project error:', err);
         res.status(400).send(err.message)
     }
 }
@@ -27,10 +28,12 @@ export const createProject = async (req, res) => {
 export const getAllProject = async (req, res) => {
     try{
         const loggedInUser = await userModel.findOne({ email: req.user.email})  
+        console.log('Getting projects for user:', loggedInUser._id);
 
         const allUserProjects = await projectService.getAllProjectByUserId({ 
             userId: loggedInUser._id 
         })
+        console.log('Found projects:', allUserProjects);
 
         return res.status(200).json({
             projects: allUserProjects
@@ -38,7 +41,7 @@ export const getAllProject = async (req, res) => {
 
     }
     catch(err){
-        console.log(err)
+        console.error('Get all projects error:', err);
         res.status(400).json({ error: err.message })
     }
 }
