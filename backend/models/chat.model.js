@@ -13,10 +13,7 @@ const chatSchema = new mongoose.Schema({
     sender: {
         _id: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'User',
-            required: function() {
-                return this.sender?.type === 'user';
-            }
+            ref: 'User'
         },
         email: {
             type: String,

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 import axios from '../config/axios.js'
-import { initializeSocket, recieveMessage, sendMessage } from '../config/socket.js'
+import { initializeSocket, recieveMessage, sendMessage, disconnectSocket } from '../config/socket.js'
 import { UserContext } from '../context/user.context.jsx'
 import Markdown from 'markdown-to-jsx'
 import { RiFolder3Line, RiFolderOpenLine, RiFile3Line, RiAddLine } from 'react-icons/ri'
@@ -70,6 +70,8 @@ const Project = () => {
     }
 
     const send = () => {
+        if (!message.trim()) return; // Don't send empty messages
+        
         console.log('Sending message:', { message, sender: user });
         sendMessage('project-message', {
             message,
@@ -80,12 +82,13 @@ const Project = () => {
                 message,
                 sender: user,
                 type: 'outgoing',
+                timestamp: new Date()
             }];
             console.log('Updated messages after send:', newMessages);
             return newMessages;
         });
         setMessage('');
-    }
+    };
 
     function writeAiMessage(message) {
         let messageObject;
@@ -187,41 +190,43 @@ const Project = () => {
     useEffect(() => {
         initializeSocket(project._id) // Initialize socket connection
 
-        // if(!webContainer) {
-        //     getWebContainer().then( container => {
-        //         setWebContainer(container)
-        //         console.log("Container started")
-        //     })
-        // }
+        // Notify others that user has joined
+        sendMessage('user-joined', user);
 
         recieveMessage('chat-history', (history) => {
             console.log('Received chat history:', history);
             setMessages(history.map(msg => ({
-                ...msg,
-                type: msg.sender?.email === user?.email ? 'outgoing' : 'incoming'
+                message: msg.message,
+                sender: msg.sender,
+                type: msg.sender?.email === user?.email ? 'outgoing' : 'incoming',
+                timestamp: msg.timestamp
             })));
         });
 
         recieveMessage('project-message', data => {
             console.log('Received project message:', data);
-            let message;
-
-            try {
-                message = JSON.parse(data.message);
-            } catch (e) {
-                message = data.message;
-            }
-
-            if (message.fileTree) {
-                setFileTree(message.fileTree)
-            }
-
             setMessages(prevMessages => {
                 console.log('Previous messages:', prevMessages);
-                const newMessages = [...prevMessages, { ...data, type: 'incoming' }];
+                const newMessages = [...prevMessages, {
+                    message: data.message,
+                    sender: data.sender,
+                    type: data.sender?.email === user?.email ? 'outgoing' : 'incoming',
+                    timestamp: data.timestamp
+                }];
                 console.log('New messages:', newMessages);
                 return newMessages;
             });
+        });
+
+        // Handle user presence
+        recieveMessage('user-joined', (userData) => {
+            console.log('User joined:', userData);
+            // You can add a notification or update UI to show who joined
+        });
+
+        recieveMessage('user-left', (data) => {
+            console.log('User left:', data);
+            // You can add a notification or update UI to show who left
         });
 
         axios.get(`/projects/get-project/${location.state.project._id}`)
@@ -241,6 +246,11 @@ const Project = () => {
             .catch(error => {
                 console.error('Error fetching users:', error);
             });
+
+        // Cleanup on unmount
+        return () => {
+            disconnectSocket();
+        };
     }, []);
 
 
@@ -413,6 +423,9 @@ const Project = () => {
                                 console.log('Rendering message:', msg);
                                 const isOutgoing = msg.sender?.email === user?.email;
                                 const isAI = msg.sender?.type === 'ai';
+                                const isCollaborator = project.users?.some(u => 
+                                    (typeof u === 'object' ? u._id : u) === msg.sender?._id
+                                );
                                 
                                 return (
                                     <div
@@ -438,6 +451,9 @@ const Project = () => {
                                         >
                                             {isAI ? writeAiMessage(msg.message) : msg.message}
                                         </div>
+                                        <span className="text-xs text-slate-500 mt-1">
+                                            {new Date(msg.timestamp).toLocaleTimeString()}
+                                        </span>
                                     </div>
                                 );
                             })}
