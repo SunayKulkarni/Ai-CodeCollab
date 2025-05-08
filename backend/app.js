@@ -13,12 +13,16 @@ const app = express();
 
 // CORS configuration
 const corsOptions = {
-    origin: process.env.NODE_ENV === 'production' 
-        ? [process.env.FRONTEND_URL] // Add your frontend URL in production
-        : '*',
+    origin: [
+        'http://localhost:5173', // Vite dev server
+        'http://localhost:3000', // Local development
+        'https://*.vercel.app',  // All Vercel deployments
+        process.env.FRONTEND_URL // Your specific Vercel URL
+    ].filter(Boolean), // Remove any undefined values
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    exposedHeaders: ['Content-Range', 'X-Content-Range']
 };
 
 app.use(cors(corsOptions));
