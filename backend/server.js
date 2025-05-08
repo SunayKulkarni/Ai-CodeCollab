@@ -23,33 +23,50 @@ const io = new Server(server, {
         methods: ['GET', 'POST'],
         credentials: true
     },
-})
+    pingTimeout: 60000,
+    pingInterval: 25000,
+    connectTimeout: 10000,
+    allowEIO3: true
+});
 
 // Socket.IO middleware
 io.use(async(socket, next) => {
-    try{
+    try {
+        console.log('Socket connection attempt...');
         const token = socket.handshake.auth?.token || socket.handshake.headers.authorization?.split(' ')[1];
         const projectId = socket.handshake.query.projectId;
 
+        console.log('Project ID:', projectId);
+        console.log('Token present:', !!token);
+
         if(!mongoose.Types.ObjectId.isValid(projectId)){
+            console.error('Invalid project ID:', projectId);
             return next(new Error('Project ID is invalid or missing'));
         }
 
         socket.project = await projectModal.findById(projectId);
+        if (!socket.project) {
+            console.error('Project not found:', projectId);
+            return next(new Error('Project not found'));
+        }
 
         if(!token){
+            console.error('No token provided');
             return next(new Error('Authentication error'));
         }   
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET)
         if(!decoded){
+            console.error('Invalid token');
             return next(new Error('Authentication error'));
         }
 
         socket.userId = decoded;
+        console.log('Socket authenticated successfully');
         next();
     }
     catch(err){
+        console.error('Socket middleware error:', err);
         return next(new Error('Invalid token'));
     }
 });
@@ -73,7 +90,9 @@ io.on('connection', (socket) => {
         });
 
     socket.on('project-message', async (data) => {
+        console.log('Received message:', data);
         const aiIsPresentInMessage = data.message.toLowerCase().includes('@ai');
+        console.log('AI present in message:', aiIsPresentInMessage);
         
         try {
             // Save the user message to database
@@ -87,12 +106,18 @@ io.on('connection', (socket) => {
                 }
             });
             await chatMessage.save();
+            console.log('User message saved to database');
             
             socket.broadcast.to(socket.roomId).emit('project-message', data);
+            console.log('User message broadcasted to room');
             
             if(aiIsPresentInMessage){
-                const prompt = data.message.replace('@ai', '');
+                console.log('Processing AI request...');
+                const prompt = data.message.replace('@ai', '').trim();
+                console.log('AI prompt:', prompt);
+                
                 const result = await generateResult(prompt);
+                console.log('AI response:', result);
                 
                 // Save AI response to database
                 const aiMessage = new chatModel({
@@ -104,6 +129,7 @@ io.on('connection', (socket) => {
                     }
                 });
                 await aiMessage.save();
+                console.log('AI message saved to database');
 
                 io.to(socket.roomId).emit('project-message', {
                     message: result,
@@ -112,9 +138,10 @@ io.on('connection', (socket) => {
                         type: 'ai'
                     }
                 });
+                console.log('AI response sent to room');
             }
         } catch (err) {
-            console.error('Error saving message:', err);
+            console.error('Error in project-message handler:', err);
         }
     });
     
