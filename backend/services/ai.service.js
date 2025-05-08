@@ -98,14 +98,36 @@ export const generateResult = async (prompt) => {
     console.log(`Generating content for prompt: ${prompt}`);
 
     try {
+        if (!process.env.GOOGLE_AI_KEY) {
+            throw new Error('GOOGLE_AI_KEY is not set');
+        }
+
+        console.log('Attempting to generate content with model:', model);
         const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
+        console.log('Raw AI response:', result);
         
-        console.log('AI Response:', text);
+        if (!result || !result.response) {
+            throw new Error('No response received from AI model');
+        }
+
+        const response = result.response;
+        console.log('Processed response:', response);
+        
+        const text = response.text();
+        console.log('Final AI Response:', text);
+        
+        if (!text) {
+            throw new Error('Empty response from AI model');
+        }
+
         return text;
     } catch (error) {
-        console.error('AI Generation Error:', error);
-        throw new Error(error.message || 'Failed to generate AI response');
+        console.error('AI Generation Error Details:', {
+            name: error.name,
+            message: error.message,
+            stack: error.stack,
+            details: error.details || 'No additional details'
+        });
+        throw new Error(`AI Generation failed: ${error.message}`);
     }
-}
+};

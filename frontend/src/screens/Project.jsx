@@ -77,16 +77,6 @@ const Project = () => {
             message,
             sender: user,
         });
-        setMessages(prevMessages => {
-            const newMessages = [...prevMessages, {
-                message,
-                sender: user,
-                type: 'outgoing',
-                timestamp: new Date()
-            }];
-            console.log('Updated messages after send:', newMessages);
-            return newMessages;
-        });
         setMessage('');
     };
 
@@ -206,6 +196,18 @@ const Project = () => {
         recieveMessage('project-message', data => {
             console.log('Received project message:', data);
             setMessages(prevMessages => {
+                // Check if message already exists to prevent duplicates
+                const messageExists = prevMessages.some(msg => 
+                    msg.message === data.message && 
+                    msg.sender?.email === data.sender?.email &&
+                    Math.abs(new Date(msg.timestamp) - new Date(data.timestamp)) < 1000
+                );
+                
+                if (messageExists) {
+                    console.log('Message already exists, skipping duplicate');
+                    return prevMessages;
+                }
+
                 console.log('Previous messages:', prevMessages);
                 const newMessages = [...prevMessages, {
                     message: data.message,
