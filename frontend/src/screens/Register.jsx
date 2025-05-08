@@ -23,13 +23,23 @@ const Register = () => {
         password 
       });
 
-      console.log('Registration successful:', response.data);
-      localStorage.setItem('token', response.data.token);
-      setUser(response.data.user);
-      navigate('/');
+      if (response.data) {
+        console.log('Registration successful:', response.data);
+        localStorage.setItem('token', response.data.token);
+        setUser(response.data.user);
+        navigate('/');
+      } else {
+        throw new Error('No data received from server');
+      }
     } catch (err) {
       console.error('Registration error:', err);
-      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+      if (err.response) {
+        setError(err.response.data?.message || 'Registration failed. Please try again.');
+      } else if (err.request) {
+        setError('No response from server. Please check your connection.');
+      } else {
+        setError('An error occurred. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
