@@ -187,6 +187,9 @@ const Project = () => {
     useEffect(() => {
         initializeSocket(project._id) // Initialize socket connection
 
+        // Join the project room and request chat history
+        sendMessage('join-project', project._id);
+
         // Notify others that user has joined
         sendMessage('user-joined', user);
 
