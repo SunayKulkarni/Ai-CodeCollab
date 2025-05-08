@@ -70,17 +70,21 @@ const Project = () => {
     }
 
     const send = () => {
+        console.log('Sending message:', { message, sender: user });
         sendMessage('project-message', {
             message,
             sender: user,
-        })
-        setMessages(prevMessages => [...prevMessages, {
-            message,
-            sender: user,
-            type: 'outgoing',
-        }])
-
-        setMessage('')
+        });
+        setMessages(prevMessages => {
+            const newMessages = [...prevMessages, {
+                message,
+                sender: user,
+                type: 'outgoing',
+            }];
+            console.log('Updated messages after send:', newMessages);
+            return newMessages;
+        });
+        setMessage('');
     }
 
     function writeAiMessage(message) {
@@ -191,6 +195,7 @@ const Project = () => {
         // }
 
         recieveMessage('chat-history', (history) => {
+            console.log('Received chat history:', history);
             setMessages(history.map(msg => ({
                 ...msg,
                 type: msg.sender?.email === user?.email ? 'outgoing' : 'incoming'
@@ -198,12 +203,12 @@ const Project = () => {
         });
 
         recieveMessage('project-message', data => {
+            console.log('Received project message:', data);
             let message;
 
             try {
                 message = JSON.parse(data.message);
             } catch (e) {
-                // console.log(e)
                 message = data.message;
             }
 
@@ -211,24 +216,32 @@ const Project = () => {
                 setFileTree(message.fileTree)
             }
 
-            setMessages(prevMessages => [...prevMessages, { ...data, type: 'incoming' }])
-        })
+            setMessages(prevMessages => {
+                console.log('Previous messages:', prevMessages);
+                const newMessages = [...prevMessages, { ...data, type: 'incoming' }];
+                console.log('New messages:', newMessages);
+                return newMessages;
+            });
+        });
 
         axios.get(`/projects/get-project/${location.state.project._id}`)
             .then(response => {
-                console.log(response.data.project)
-                setProject(response.data.project)
+                console.log('Project data:', response.data.project);
+                setProject(response.data.project);
             })
-
+            .catch(error => {
+                console.error('Error fetching project:', error);
+            });
 
         axios.get('/users/all')
             .then(response => {
-                setUsers(response.data.users)
+                console.log('Users data:', response.data.users);
+                setUsers(response.data.users);
             })
             .catch(error => {
-                console.log(error)
-            })
-    }, [])
+                console.error('Error fetching users:', error);
+            });
+    }, []);
 
 
     useEffect(() => {
@@ -397,6 +410,7 @@ const Project = () => {
                             style={{ minHeight: '0' }}
                         >
                             {messages.map((msg, index) => {
+                                console.log('Rendering message:', msg);
                                 const isOutgoing = msg.sender?.email === user?.email;
                                 const isAI = msg.sender?.type === 'ai';
                                 
@@ -421,10 +435,6 @@ const Project = () => {
                                                        group-hover:shadow-xl`
                                                 }
                                             `}
-                                            style={{
-                                                boxShadow: isAI ? 'none' : '0 4px 16px 0 rgba(0,0,0,0.10)',
-                                                transition: 'box-shadow 0.2s'
-                                            }}
                                         >
                                             {isAI ? writeAiMessage(msg.message) : msg.message}
                                         </div>

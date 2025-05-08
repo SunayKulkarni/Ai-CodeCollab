@@ -7,6 +7,7 @@ import mongoose from 'mongoose'
 import projectModal from './models/project.model.js'
 import chatModel from './models/chat.model.js'
 import { generateResult } from './services/ai.service.js'
+import Message from './models/message.model'
 dotenv.config()
 
 const port = process.env.PORT || 3000;
@@ -73,81 +74,99 @@ io.use(async(socket, next) => {
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
-    socket.roomId = socket.project._id.toString();
+    console.log('New client connected:', socket.id);
+    const projectId = socket.handshake.query.projectId;
+    console.log('Client joined project:', projectId);
 
-    console.log('a user connected');
+    if (projectId) {
+        socket.join(projectId);
+        console.log(`Socket ${socket.id} joined room: ${projectId}`);
 
-    socket.join(socket.roomId);
-
-    // Send chat history when user connects
-    chatModel.find({ projectId: socket.project._id })
-        .sort({ timestamp: 1 })
-        .then(messages => {
-            socket.emit('chat-history', messages);
-        })
-        .catch(err => {
-            console.error('Error fetching chat history:', err);
-        });
+        // Send chat history when user connects
+        Message.find({ project: projectId })
+            .sort({ timestamp: 1 })
+            .populate('sender', 'email _id')
+            .then(messages => {
+                console.log('Sending chat history:', messages);
+                socket.emit('chat-history', messages);
+            })
+            .catch(err => {
+                console.error('Error fetching chat history:', err);
+            });
+    }
 
     socket.on('project-message', async (data) => {
-        console.log('Received message:', data);
-        const aiIsPresentInMessage = data.message.toLowerCase().includes('@ai');
-        console.log('AI present in message:', aiIsPresentInMessage);
-        
+        console.log('Received project message:', data);
         try {
-            // Save the user message to database
-            const chatMessage = new chatModel({
-                projectId: socket.project._id,
-                message: data.message,
-                sender: {
-                    _id: data.sender._id,
-                    email: data.sender.email,
-                    type: 'user'
-                }
-            });
-            await chatMessage.save();
-            console.log('User message saved to database');
-            
-            socket.broadcast.to(socket.roomId).emit('project-message', data);
-            console.log('User message broadcasted to room');
-            
-            if(aiIsPresentInMessage){
-                console.log('Processing AI request...');
-                const prompt = data.message.replace('@ai', '').trim();
-                console.log('AI prompt:', prompt);
-                
-                const result = await generateResult(prompt);
-                console.log('AI response:', result);
-                
-                // Save AI response to database
-                const aiMessage = new chatModel({
-                    projectId: socket.project._id,
-                    message: result,
-                    sender: {
-                        email: 'AI',
-                        type: 'ai'
-                    }
-                });
-                await aiMessage.save();
-                console.log('AI message saved to database');
+            const { message, sender } = data;
+            console.log('Message details:', { message, sender });
 
-                io.to(socket.roomId).emit('project-message', {
-                    message: result,
-                    sender: {
-                        email: 'AI',
+            // Store message in database
+            const newMessage = new Message({
+                project: projectId,
+                sender: sender._id,
+                content: message,
+                type: 'text'
+            });
+
+            await newMessage.save();
+            console.log('Message saved to database:', newMessage);
+
+            // Broadcast to all clients in the project room
+            io.to(projectId).emit('project-message', {
+                ...data,
+                timestamp: new Date()
+            });
+            console.log('Message broadcasted to room:', projectId);
+
+            // Check for AI request
+            if (message.toLowerCase().includes('@ai')) {
+                console.log('Processing AI request...');
+                const prompt = message.replace('@ai', '').trim();
+                console.log('AI prompt:', prompt);
+
+                try {
+                    const result = await generateResult(prompt);
+                    console.log('AI response:', result);
+
+                    // Save AI response to database
+                    const aiMessage = new Message({
+                        project: projectId,
+                        sender: sender._id, // Use the same sender for AI responses
+                        content: result,
                         type: 'ai'
-                    }
-                });
-                console.log('AI response sent to room');
+                    });
+                    await aiMessage.save();
+                    console.log('AI message saved to database');
+
+                    // Broadcast AI response
+                    io.to(projectId).emit('project-message', {
+                        message: result,
+                        sender: {
+                            _id: sender._id,
+                            email: 'AI',
+                            type: 'ai'
+                        },
+                        timestamp: new Date()
+                    });
+                    console.log('AI response broadcasted to room:', projectId);
+                } catch (error) {
+                    console.error('Error generating AI response:', error);
+                    socket.emit('error', { message: 'Error generating AI response' });
+                }
             }
-        } catch (err) {
-            console.error('Error in project-message handler:', err);
+        } catch (error) {
+            console.error('Error handling project message:', error);
+            socket.emit('error', { message: 'Error processing message' });
         }
     });
-    
+
     socket.on('disconnect', () => {
-        console.log('user disconnected');
-        socket.leave(socket.roomId);
+        console.log('Client disconnected:', socket.id);
+    });
+
+    socket.on('error', (error) => {
+        console.error('Socket error:', error);
     });
 });
 

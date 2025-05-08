@@ -1,71 +1,58 @@
-import socket from "socket.io-client";
+import { io } from 'socket.io-client';
 
-let socketInstance = null;
+let socket;
 
 export const initializeSocket = (projectId) => {
-    console.log('Initializing socket connection...');
-    console.log('API URL:', import.meta.env.VITE_API_URL);
-    console.log('Project ID:', projectId);
-    
-    if (socketInstance) {
-        console.log('Socket already exists, disconnecting...');
-        socketInstance.disconnect();
-    }
-    
-    socketInstance = socket.io(import.meta.env.VITE_API_URL, {
-        auth: { token: localStorage.getItem('token') },
+    console.log('Initializing socket for project:', projectId);
+    socket = io(import.meta.env.VITE_SOCKET_URL, {
         query: { projectId },
-        reconnection: true,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
-        timeout: 10000
+        withCredentials: true
     });
 
-    socketInstance.on('connect', () => {
+    socket.on('connect', () => {
         console.log('Socket connected successfully');
     });
 
-    socketInstance.on('connect_error', (error) => {
+    socket.on('connect_error', (error) => {
         console.error('Socket connection error:', error);
-        if (error.message === 'Invalid token') {
-            console.log('Token is invalid, redirecting to login...');
-            localStorage.removeItem('token');
-            window.location.href = '/login';
-        }
     });
 
-    socketInstance.on('error', (error) => {
-        console.error('Socket error:', error);
-    });
+    return socket;
+};
 
-    socketInstance.on('disconnect', (reason) => {
-        console.log('Socket disconnected:', reason);
-        if (reason === 'io server disconnect') {
-            // Server initiated disconnect, try to reconnect
-            socketInstance.connect();
-        }
-    });
+export const getSocket = () => {
+    if (!socket) {
+        console.warn('Socket not initialized');
+        return null;
+    }
+    return socket;
+};
 
-    return socketInstance;
-}
-
-export const recieveMessage = (eventName, callback) => {
-    if (!socketInstance) {
+export const sendMessage = (event, data) => {
+    console.log('Sending socket message:', { event, data });
+    if (!socket) {
         console.error('Socket not initialized');
         return;
     }
-    console.log('Registering listener for event:', eventName);
-    socketInstance.on(eventName, (data) => {
-        console.log(`Received ${eventName} event:`, data);
+    socket.emit(event, data);
+};
+
+export const recieveMessage = (event, callback) => {
+    console.log('Setting up socket listener for:', event);
+    if (!socket) {
+        console.error('Socket not initialized');
+        return;
+    }
+    socket.on(event, (data) => {
+        console.log('Received socket message:', { event, data });
         callback(data);
     });
-}
+};
 
-export const sendMessage = (eventName, data) => {
-    if (!socketInstance) {
-        console.error('Socket not initialized');
-        return;
+export const disconnectSocket = () => {
+    console.log('Disconnecting socket');
+    if (socket) {
+        socket.disconnect();
+        socket = null;
     }
-    console.log(`Sending ${eventName} event:`, data);
-    socketInstance.emit(eventName, data);
-}
+};
