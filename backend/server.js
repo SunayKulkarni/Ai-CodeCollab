@@ -17,11 +17,15 @@ const server = http.createServer(app)
 // Socket.IO configuration
 const io = new Server(server, {
     cors: {
-        origin: process.env.NODE_ENV === 'production'
-            ? process.env.FRONTEND_URL
-            : '*',
+        origin: [
+            'http://localhost:5173', // Vite dev server
+            'http://localhost:3000', // Local development
+            'https://*.vercel.app',  // All Vercel deployments
+            process.env.FRONTEND_URL // Your specific Vercel URL
+        ].filter(Boolean),
         methods: ['GET', 'POST'],
-        credentials: true
+        credentials: true,
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
     },
 })
 
