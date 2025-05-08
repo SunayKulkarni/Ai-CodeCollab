@@ -15,7 +15,12 @@ export const createProject = async (req, res) => {
         console.log('Creating project for user:', loggedInUser);
         
         const userId = loggedInUser._id;
-        const newProject = await projectService.createProject({ name, userId })
+        // Create project with the creator as the first user (owner)
+        const newProject = await projectService.createProject({ 
+            name, 
+            userId,
+            users: [userId] // Set creator as first user (owner)
+        })
         console.log('New project created:', newProject);
         
         // Fetch the full project with populated users
@@ -24,12 +29,6 @@ export const createProject = async (req, res) => {
             .lean();
             
         console.log('Full project with populated users:', fullProject);
-        
-        // Ensure the project has the correct user structure
-        if (!fullProject.users.some(u => u._id.toString() === userId.toString())) {
-            console.log('Adding user to project');
-            fullProject.users = [loggedInUser, ...fullProject.users];
-        }
         
         res.status(201).json({ project: fullProject });
     }

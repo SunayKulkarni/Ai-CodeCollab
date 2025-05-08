@@ -73,11 +73,28 @@ export const loginController = async (req, res) => {
 
 
 export const profileController = async (req, res) => {
-    console.log(req.user);
+    console.log('Profile request received for user:', req.user);
+    
+    try {
+        // Fetch complete user data from database
+        const user = await userModel.findById(req.user._id);
+        if (!user) {
+            console.log('User not found in database');
+            return res.status(404).json({ message: 'User not found' });
+        }
 
-    res.status(200).json({
-        user: req.user
-    });
+        console.log('Sending user profile:', user);
+        res.status(200).json({
+            user: {
+                _id: user._id,
+                email: user.email,
+                // Add any other user fields you need
+            }
+        });
+    } catch (err) {
+        console.error('Profile error:', err);
+        res.status(500).json({ message: 'Error fetching profile' });
+    }
 }
 
 
