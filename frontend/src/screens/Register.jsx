@@ -6,36 +6,50 @@ import {UserContext } from '../context/user.context.jsx'
 const Register = ()=> {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const { setUser } = useContext(UserContext);
-
   const navigate = useNavigate();
 
-  function submitHandler(e) {
-
+  async function submitHandler(e) {
     e.preventDefault();
+    setError("");
+    setIsLoading(true);
 
-    axios.post('/users/register', { 
-        email, 
-        password 
-    }).then((res) => {
-        console.log(res.data);
+    try {
+      console.log('Attempting registration with:', { email, password });
+      const res = await axios.post('/users/register', { 
+          email, 
+          password 
+      });
+      
+      console.log('Registration response:', res.data);
 
-        localStorage.setItem('token', res.data.token);
-        setUser(res.data.user);
-
-        navigate('/')
-    }).catch((err) => {
-        console.error(err.response.data);
-    })
-
-    
-  };
+      if (res.data && res.data.token) {
+          localStorage.setItem('token', res.data.token);
+          setUser(res.data.user);
+          navigate('/');
+      } else {
+          throw new Error('Invalid response from server');
+      }
+    } catch (err) {
+      console.error('Registration error:', err);
+      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-      <div className="bg-gray-800 p-8 rounded-2xl shadow-lg w-full max-w-md">
+      <div className="bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-md">
         <h2 className="text-2xl font-bold text-white mb-6 text-center">Register</h2>
+        {error && (
+          <div className="mb-4 p-3 bg-red-900/20 border border-red-800 rounded-lg text-red-300 text-sm">
+            {error}
+          </div>
+        )}
         <form onSubmit={submitHandler} className="space-y-4">
           <div>
             <label className="block text-gray-400 mb-1">Email</label>
@@ -59,9 +73,10 @@ const Register = ()=> {
           </div>
           <button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg font-semibold transition"
+            disabled={isLoading}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Register
+            {isLoading ? 'Registering...' : 'Register'}
           </button>
         </form>
         <p className="text-gray-400 text-center mt-4">
