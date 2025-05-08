@@ -20,28 +20,21 @@ const corsOptions = {
     allowedHeaders: ['Content-Type', 'Authorization']
 };
 
+// Middleware
 app.use(cors(corsOptions));
-
-app.use(morgan('dev'))
-
+app.use(morgan('dev'));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser()); // Move cookieParser before routes
 
-app.use(express.urlencoded({ extended:true }))
+// Routes
+app.use('/users', userRoutes);
+app.use('/projects', projectRoutes);
+app.use('/ai', aiRoutes);
+app.use('/test', testRoutes);
 
-app.use('/users', userRoutes)
-
-app.use('/projects', projectRoutes)
-
-app.use('/ai', aiRoutes)
-
-app.use('/test', testRoutes)
-
-app.use(cookieParser()) // middleware for parsing cookies
-
-  
-app.get('/', (req, res)=> {
-    res.send('Hello world')
-})
-
+app.get('/', (req, res) => {
+    res.send('Hello world');
+});
 
 export default app 
