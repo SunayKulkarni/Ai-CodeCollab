@@ -100,15 +100,14 @@ io.on('connection', (socket) => {
     }
 
     socket.on('project-message', async (data) => {
-        console.log('Received project message:', data);
         try {
-            const { message, sender } = data;
-            console.log('Message details:', { message, sender });
+            console.log('Received project message:', data);
+            const { message, sender, projectId } = data;
 
-            // Store message in database
-            const newMessage = new chatModel({
-                projectId: projectId,
-                message: message,
+            // Save the message to the database
+            const savedMessage = await chatModel.create({
+                projectId,
+                message,
                 sender: {
                     _id: sender._id,
                     email: sender.email,
@@ -116,82 +115,52 @@ io.on('connection', (socket) => {
                 },
                 timestamp: new Date()
             });
+            console.log('Saved message to database:', savedMessage);
 
-            try {
-                const savedMessage = await newMessage.save();
-                console.log('Message saved to database successfully:', savedMessage);
-            } catch (saveError) {
-                console.error('Error saving message to database:', saveError);
-                throw saveError;
-            }
+            // Broadcast the message to all clients in the project room
+            io.to(projectId).emit('project-message', savedMessage);
 
-            // Broadcast to all clients in the project room
-            io.to(projectId).emit('project-message', {
-                message: message,
-                sender: {
-                    _id: sender._id,
-                    email: sender.email,
-                    type: 'user'
-                },
-                timestamp: new Date()
-            });
-            console.log('Message broadcasted to room:', projectId);
-
-            // Check for AI request
+            // Check if this is an AI request
             if (message.toLowerCase().includes('@ai')) {
-                console.log('Processing AI request...');
-                const prompt = message.replace('@ai', '').trim();
-                console.log('AI prompt:', prompt);
-
+                console.log('AI request detected:', message);
                 try {
-                    const result = await generateResult(prompt);
-                    console.log('AI response:', result);
-                    
+                    // Generate AI response
+                    const aiResponse = await generateResult(message);
+                    console.log('AI generated response:', aiResponse);
+
                     // Save AI response to database
-                    const aiMessage = new chatModel({
-                        projectId: projectId,
-                        message: result,
+                    const aiMessage = await chatModel.create({
+                        projectId,
+                        message: aiResponse,
                         sender: {
-                            email: 'AI',
+                            _id: 'ai',
+                            email: 'ai@assistant.com',
                             type: 'ai'
                         },
                         timestamp: new Date()
                     });
+                    console.log('Saved AI response to database:', aiMessage);
 
-                    try {
-                        const savedAiMessage = await aiMessage.save();
-                        console.log('AI message saved to database successfully:', savedAiMessage);
-                    } catch (saveError) {
-                        console.error('Error saving AI message to database:', saveError);
-                        throw saveError;
-                    }
-
-                    // Broadcast AI response to all clients in the project room
-                    io.to(projectId).emit('project-message', {
-                        message: result,
-                        sender: {
-                            email: 'AI',
-                            type: 'ai'
-                        },
-                        timestamp: new Date()
-                    });
-                    console.log('AI response broadcasted to room:', projectId);
+                    // Broadcast AI response to all clients
+                    io.to(projectId).emit('project-message', aiMessage);
                 } catch (error) {
                     console.error('Error generating AI response:', error);
                     // Send error message to the client
-                    io.to(projectId).emit('project-message', {
-                        message: 'Sorry, I encountered an error while processing your request.',
+                    const errorMessage = await chatModel.create({
+                        projectId,
+                        message: `Error: ${error.message}`,
                         sender: {
-                            email: 'AI',
+                            _id: 'ai',
+                            email: 'ai@assistant.com',
                             type: 'ai'
                         },
                         timestamp: new Date()
                     });
+                    io.to(projectId).emit('project-message', errorMessage);
                 }
             }
         } catch (error) {
             console.error('Error handling project message:', error);
-            socket.emit('error', { message: 'Error processing message' });
         }
     });
 
