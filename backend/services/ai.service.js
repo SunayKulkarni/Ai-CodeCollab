@@ -8,10 +8,12 @@ if (!process.env.GOOGLE_AI_KEY) {
     process.exit(1);
 }
 
+console.log('Initializing Google AI with key:', process.env.GOOGLE_AI_KEY ? 'Key exists' : 'No key found');
+
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_KEY);
 
 const model = genAI.getGenerativeModel({
-    model: 'gemini-2.5-pro',
+    model: 'gemini-pro',
     generationConfig: {
         temperature: 0.4,
         topK: 40,

@@ -34,7 +34,7 @@ const io = new Server(server, {
 io.use(async(socket, next) => {
     try {
         console.log('Socket connection attempt...');
-        const token = socket.handshake.auth?.token || socket.handshake.headers.authorization?.split(' ')[1];
+        const token = socket.handshake.auth?.token;
         const projectId = socket.handshake.query.projectId;
 
         console.log('Project ID:', projectId);
@@ -56,15 +56,19 @@ io.use(async(socket, next) => {
             return next(new Error('Authentication error'));
         }   
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET)
-        if(!decoded){
-            console.error('Invalid token');
-            return next(new Error('Authentication error'));
+        try {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            if(!decoded){
+                console.error('Invalid token');
+                return next(new Error('Authentication error'));
+            }
+            socket.userId = decoded;
+            console.log('Socket authenticated successfully');
+            next();
+        } catch (jwtError) {
+            console.error('JWT verification error:', jwtError);
+            return next(new Error('Invalid token'));
         }
-
-        socket.userId = decoded;
-        console.log('Socket authenticated successfully');
-        next();
     }
     catch(err){
         console.error('Socket middleware error:', err);
@@ -142,7 +146,7 @@ io.on('connection', (socket) => {
                 try {
                     const result = await generateResult(prompt);
                     console.log('AI response:', result);
-
+                    
                     // Save AI response to database
                     const aiMessage = new chatModel({
                         projectId: projectId,
@@ -174,7 +178,15 @@ io.on('connection', (socket) => {
                     console.log('AI response broadcasted to room:', projectId);
                 } catch (error) {
                     console.error('Error generating AI response:', error);
-                    socket.emit('error', { message: 'Error generating AI response' });
+                    // Send error message to the client
+                    io.to(projectId).emit('project-message', {
+                        message: 'Sorry, I encountered an error while processing your request.',
+                        sender: {
+                            email: 'AI',
+                            type: 'ai'
+                        },
+                        timestamp: new Date()
+                    });
                 }
             }
         } catch (error) {

@@ -4,8 +4,16 @@ let socket;
 
 export const initializeSocket = (projectId) => {
     console.log('Initializing socket for project:', projectId);
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    
+    if (!token) {
+        console.error('No authentication token found');
+        return null;
+    }
+
     socket = io(import.meta.env.VITE_SOCKET_URL, {
         query: { projectId },
+        auth: { token },
         withCredentials: true
     });
 
