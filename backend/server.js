@@ -58,13 +58,13 @@ io.use(async(socket, next) => {
 
         try {
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            if(!decoded){
+        if(!decoded){
                 console.error('Invalid token');
-                return next(new Error('Authentication error'));
-            }
-            socket.userId = decoded;
+            return next(new Error('Authentication error'));
+        }
+        socket.userId = decoded;
             console.log('Socket authenticated successfully');
-            next();
+        next();
         } catch (jwtError) {
             console.error('JWT verification error:', jwtError);
             return next(new Error('Invalid token'));
@@ -86,45 +86,26 @@ io.on('connection', (socket) => {
         socket.join(projectId);
         console.log(`Socket ${socket.id} joined room: ${projectId}`);
 
-        // Send chat history when user connects
+    // Send chat history when user connects
         chatModel.find({ projectId: projectId })
-            .sort({ timestamp: 1 })
+        .sort({ timestamp: 1 })
             .populate('sender._id', 'email _id')
-            .then(messages => {
+        .then(messages => {
                 console.log('Sending chat history:', messages);
-                socket.emit('chat-history', messages);
-            })
-            .catch(err => {
-                console.error('Error fetching chat history:', err);
-            });
+            socket.emit('chat-history', messages);
+        })
+        .catch(err => {
+            console.error('Error fetching chat history:', err);
+        });
     }
 
     socket.on('project-message', async (data) => {
         try {
             console.log('Received project message:', data);
-            const { message, sender, projectId, id } = data;
-
-            // Check if message already exists in database
-            const existingMessage = await chatModel.findOne({ _id: id });
-            if (existingMessage) {
-                console.log('Message already exists in database, skipping:', id);
-                return;
-            }
+            const { message, sender, projectId } = data;
 
             // Save the message to the database
-            console.log('Attempting to save message to MongoDB Atlas:', {
-                projectId,
-                message,
-                sender: {
-                    _id: sender._id,
-                    email: sender.email,
-                    type: 'user'
-                },
-                timestamp: new Date()
-            });
-
             const savedMessage = await chatModel.create({
-                _id: id, // Use the provided ID
                 projectId,
                 message,
                 sender: {
@@ -134,53 +115,44 @@ io.on('connection', (socket) => {
                 },
                 timestamp: new Date()
             });
-            console.log('Successfully saved message to MongoDB Atlas. Document ID:', savedMessage._id);
+            console.log('Saved message to database:', savedMessage);
 
             // Broadcast the message to all clients in the project room
             io.to(projectId).emit('project-message', savedMessage);
 
             // Check if this is an AI request
-            if (message.toLowerCase().startsWith('@ai ')) {
+            if (message.toLowerCase().includes('@ai')) {
                 console.log('AI request detected:', message);
                 try {
                     // Generate AI response
-                    const prompt = message.substring(4).trim(); // Remove '@ai ' prefix
-                    console.log('Sending prompt to AI:', prompt);
-                    const aiResponse = await generateResult(prompt);
+                    const aiResponse = await generateResult(message);
                     console.log('AI generated response:', aiResponse);
 
-                    // Generate unique ID for AI message
-                    const aiMessageId = `ai_${Date.now()}`;
-
                     // Save AI response to database
-                    console.log('Saving AI response to MongoDB Atlas...');
                     const aiMessage = await chatModel.create({
-                        _id: aiMessageId,
                         projectId,
                         message: aiResponse,
-                        sender: {
+                    sender: {
                             _id: 'ai',
                             email: 'ai@assistant.com',
-                            type: 'ai'
+                        type: 'ai'
                         },
                         timestamp: new Date()
                     });
-                    console.log('Successfully saved AI response to MongoDB Atlas. Document ID:', aiMessage._id);
+                    console.log('Saved AI response to database:', aiMessage);
 
                     // Broadcast AI response to all clients
                     io.to(projectId).emit('project-message', aiMessage);
                 } catch (error) {
                     console.error('Error generating AI response:', error);
                     // Send error message to the client
-                    const errorMessageId = `error_${Date.now()}`;
                     const errorMessage = await chatModel.create({
-                        _id: errorMessageId,
                         projectId,
                         message: `Error: ${error.message}`,
-                        sender: {
+                    sender: {
                             _id: 'ai',
                             email: 'ai@assistant.com',
-                            type: 'ai'
+                        type: 'ai'
                         },
                         timestamp: new Date()
                     });
@@ -199,21 +171,11 @@ io.on('connection', (socket) => {
             socket.join(projectId);
             
             // Fetch chat history from database
-            console.log('Fetching chat history for project:', projectId);
             const chatHistory = await chatModel.find({ projectId })
                 .sort({ timestamp: 1 })
                 .populate('sender._id', 'email _id');
                 
-            console.log('Found chat history:', {
-                count: chatHistory.length,
-                messages: chatHistory.map(msg => ({
-                    id: msg._id,
-                    message: msg.message,
-                    sender: msg.sender,
-                    timestamp: msg.timestamp
-                }))
-            });
-            
+            console.log('Sending chat history:', chatHistory);
             socket.emit('chat-history', chatHistory);
         } catch (error) {
             console.error('Error fetching chat history:', error);
@@ -229,7 +191,7 @@ io.on('connection', (socket) => {
             timestamp: new Date()
         });
     });
-
+    
     socket.on('disconnect', () => {
         console.log('Client disconnected:', socket.id);
         // Notify other users about the disconnection

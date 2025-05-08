@@ -42,8 +42,6 @@ const Project = () => {
     const resizerRef = useRef(null);
     const [isResizing, setIsResizing] = useState(false);
 
-    const [isAiLoading, setIsAiLoading] = useState(false);
-    const [processedMessageIds] = useState(new Set());
 
     const handleUserClick = (id) => {
         setSelectedUserId(prevSelectedUserId => {
@@ -74,23 +72,17 @@ const Project = () => {
     const send = () => {
         if (!message.trim()) return; // Don't send empty messages
         
-        const isAiMessage = message.toLowerCase().startsWith('@ai ');
-        console.log('Sending message:', { message, sender: user, isAiMessage });
-        
+        console.log('Sending message:', { message, sender: user });
         // Add message to local state immediately for better UX
-        const newMessage = {
+        setMessages(prevMessages => [...prevMessages, {
             message,
             sender: user,
             type: 'outgoing',
-            timestamp: new Date(),
-            id: Date.now().toString() // Add unique ID for deduplication
-        };
-        
-        setMessages(prevMessages => [...prevMessages, newMessage]);
+            timestamp: new Date()
+        }]);
         sendMessage('project-message', {
             message,
             sender: user,
-            id: newMessage.id
         });
         setMessage('');
     };
@@ -207,27 +199,18 @@ const Project = () => {
                 message: msg.message,
                 sender: msg.sender,
                 type: msg.sender?.email === user?.email ? 'outgoing' : 'incoming',
-                timestamp: msg.timestamp,
-                id: msg._id // Use MongoDB _id for deduplication
+                timestamp: msg.timestamp
             })));
         });
 
         recieveMessage('project-message', data => {
             console.log('Received project message:', data);
-            
-            // Skip if we've already processed this message
-            if (processedMessageIds.has(data.id)) {
-                console.log('Message already processed, skipping:', data.id);
-                return;
-            }
-
             setMessages(prevMessages => {
                 // Check if message already exists to prevent duplicates
                 const messageExists = prevMessages.some(msg => 
-                    msg.id === data.id || // Check by ID first
-                    (msg.message === data.message && 
+                    msg.message === data.message && 
                     msg.sender?.email === data.sender?.email &&
-                    Math.abs(new Date(msg.timestamp) - new Date(data.timestamp)) < 1000)
+                    Math.abs(new Date(msg.timestamp) - new Date(data.timestamp)) < 1000
                 );
                 
                 if (messageExists) {
@@ -235,16 +218,12 @@ const Project = () => {
                     return prevMessages;
                 }
 
-                // Add message ID to processed set
-                processedMessageIds.add(data.id);
-
                 console.log('Previous messages:', prevMessages);
                 const newMessages = [...prevMessages, {
                     message: data.message,
                     sender: data.sender,
                     type: data.sender?.email === user?.email ? 'outgoing' : 'incoming',
-                    timestamp: data.timestamp,
-                    id: data.id
+                    timestamp: data.timestamp
                 }];
                 console.log('New messages:', newMessages);
                 return newMessages;
@@ -280,12 +259,11 @@ const Project = () => {
                 console.error('Error fetching users:', error);
             });
 
-        // Cleanup function to remove socket listeners
+        // Cleanup on unmount
         return () => {
             disconnectSocket();
-            processedMessageIds.clear();
         };
-    }, []); // Empty dependency array since we only want to set up listeners once
+    }, []);
 
 
     useEffect(() => {
@@ -463,7 +441,7 @@ const Project = () => {
                                 
                                 return (
                                     <div
-                                        key={msg.id || index} // Use message ID if available, fallback to index
+                                        key={index}
                                         className={`flex flex-col ${isOutgoing ? 'items-end' : 'items-start'} group mb-4`}
                                     >
                                         <span className="text-xs text-slate-400 mb-1 ml-2 mr-2">

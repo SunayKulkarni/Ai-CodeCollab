@@ -23,16 +23,16 @@ const Register = ()=> {
     try {
       console.log('Attempting registration with:', { email, password });
       const res = await axios.post('/users/register', { 
-          email, 
-          password 
+        email, 
+        password 
       });
-      
+
       console.log('Registration response:', res.data);
 
       if (res.data && res.data.token) {
           console.log('Setting token and user data');
-          localStorage.setItem('token', res.data.token);
-          setUser(res.data.user);
+        localStorage.setItem('token', res.data.token);
+        setUser(res.data.user);
           console.log('Navigating to home page');
           navigate('/');
       } else {

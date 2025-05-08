@@ -28,7 +28,7 @@ const model = genAI.getGenerativeModel({
         {
             category: "HARM_CATEGORY_HATE_SPEECH",
             threshold: "BLOCK_MEDIUM_AND_ABOVE"
-        },
+                        },
         {
             category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
             threshold: "BLOCK_MEDIUM_AND_ABOVE"
@@ -113,7 +113,7 @@ export const generateResult = async (prompt) => {
         const response = result.response;
         console.log('Processed response:', response);
         
-        const text = await response.text();
+        const text = response.text();
         console.log('Final AI Response:', text);
         
         if (!text) {
