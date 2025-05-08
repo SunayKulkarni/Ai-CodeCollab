@@ -1,7 +1,7 @@
 import React, { useEffect, useContext } from 'react'
 import { UserContext } from '../context/user.context.jsx'
 import { useNavigate } from'react-router-dom';
-import axios from '../config/axios.js';
+import jwtDecode from 'jwt-decode';
 
 const UserAuth = ({ children }) => {
     const { user, setUser } = useContext(UserContext);
@@ -18,14 +18,17 @@ const UserAuth = ({ children }) => {
 
             try {
                 console.log('Validating token...');
-                const res = await axios.get('/users/profile');
-                console.log('Profile response:', res.data);
+                const decodedToken = jwtDecode(token);
+                console.log('Decoded token:', decodedToken);
                 
-                if (res.data && res.data.user) {
-                    console.log('Setting user data:', res.data.user);
-                    setUser(res.data.user);
+                if (decodedToken && decodedToken.email) {
+                    console.log('Setting user data from token');
+                    setUser({
+                        email: decodedToken.email,
+                        _id: decodedToken._id
+                    });
                 } else {
-                    console.log('Invalid profile response, redirecting to login');
+                    console.log('Invalid token data, redirecting to login');
                     localStorage.removeItem('token');
                     navigate('/login');
                 }
