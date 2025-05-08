@@ -102,20 +102,17 @@ io.on('connection', (socket) => {
     socket.on('project-message', async (data) => {
         try {
             console.log('Received project message:', data);
-            const { message, sender, projectId } = data;
+            const { message, sender, projectId, id } = data;
+
+            // Check if message already exists in database
+            const existingMessage = await chatModel.findOne({ _id: id });
+            if (existingMessage) {
+                console.log('Message already exists in database, skipping:', id);
+                return;
+            }
 
             // Save the message to the database
-            console.log('Attempting to save message to database:', {
-                projectId,
-                message,
-                sender: {
-                    _id: sender._id,
-                    email: sender.email,
-                    type: 'user'
-                }
-            });
-
-            const savedMessage = await chatModel.create({
+            console.log('Attempting to save message to MongoDB Atlas:', {
                 projectId,
                 message,
                 sender: {
@@ -125,26 +122,40 @@ io.on('connection', (socket) => {
                 },
                 timestamp: new Date()
             });
-            console.log('Successfully saved message to database:', savedMessage);
 
-            // Verify the message was saved by querying it
-            const verifyMessage = await chatModel.findById(savedMessage._id);
-            console.log('Verified saved message:', verifyMessage);
+            const savedMessage = await chatModel.create({
+                _id: id, // Use the provided ID
+                projectId,
+                message,
+                sender: {
+                    _id: sender._id,
+                    email: sender.email,
+                    type: 'user'
+                },
+                timestamp: new Date()
+            });
+            console.log('Successfully saved message to MongoDB Atlas. Document ID:', savedMessage._id);
 
             // Broadcast the message to all clients in the project room
             io.to(projectId).emit('project-message', savedMessage);
 
             // Check if this is an AI request
-            if (message.toLowerCase().includes('@ai')) {
+            if (message.toLowerCase().startsWith('@ai ')) {
                 console.log('AI request detected:', message);
                 try {
                     // Generate AI response
-                    const aiResponse = await generateResult(message);
+                    const prompt = message.substring(4).trim(); // Remove '@ai ' prefix
+                    console.log('Sending prompt to AI:', prompt);
+                    const aiResponse = await generateResult(prompt);
                     console.log('AI generated response:', aiResponse);
 
+                    // Generate unique ID for AI message
+                    const aiMessageId = `ai_${Date.now()}`;
+
                     // Save AI response to database
-                    console.log('Saving AI response to database...');
+                    console.log('Saving AI response to MongoDB Atlas...');
                     const aiMessage = await chatModel.create({
+                        _id: aiMessageId,
                         projectId,
                         message: aiResponse,
                         sender: {
@@ -154,18 +165,16 @@ io.on('connection', (socket) => {
                         },
                         timestamp: new Date()
                     });
-                    console.log('Successfully saved AI response to database:', aiMessage);
-
-                    // Verify AI message was saved
-                    const verifyAiMessage = await chatModel.findById(aiMessage._id);
-                    console.log('Verified saved AI message:', verifyAiMessage);
+                    console.log('Successfully saved AI response to MongoDB Atlas. Document ID:', aiMessage._id);
 
                     // Broadcast AI response to all clients
                     io.to(projectId).emit('project-message', aiMessage);
                 } catch (error) {
                     console.error('Error generating AI response:', error);
                     // Send error message to the client
+                    const errorMessageId = `error_${Date.now()}`;
                     const errorMessage = await chatModel.create({
+                        _id: errorMessageId,
                         projectId,
                         message: `Error: ${error.message}`,
                         sender: {
