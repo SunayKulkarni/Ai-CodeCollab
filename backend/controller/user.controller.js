@@ -76,19 +76,22 @@ export const profileController = async (req, res) => {
     console.log('Profile request received for user:', req.user);
     
     try {
-        // Fetch complete user data from database
-        const user = await userModel.findById(req.user._id);
+        // Find user by email instead of _id since that's what we have in the token
+        const user = await userModel.findOne({ email: req.user.email });
         if (!user) {
-            console.log('User not found in database');
+            console.log('User not found in database for email:', req.user.email);
             return res.status(404).json({ message: 'User not found' });
         }
 
-        console.log('Sending user profile:', user);
+        console.log('Found user in database:', {
+            _id: user._id,
+            email: user.email
+        });
+
         res.status(200).json({
             user: {
                 _id: user._id,
-                email: user.email,
-                // Add any other user fields you need
+                email: user.email
             }
         });
     } catch (err) {
