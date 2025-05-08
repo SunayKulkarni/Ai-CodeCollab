@@ -12,11 +12,25 @@ export const createProject = async (req, res) => {
     try{
         const {name}=req.body;
         const loggedInUser = await userModel.findOne({ email: req.user.email})
+        console.log('Creating project for user:', loggedInUser);
+        
         const userId = loggedInUser._id;
         const newProject = await projectService.createProject({ name, userId })
+        console.log('New project created:', newProject);
+        
         // Fetch the full project with populated users
-        const fullProject = await projectModel.findById(newProject._id).populate('users');
-        console.log('Created project:', fullProject);
+        const fullProject = await projectModel.findById(newProject._id)
+            .populate('users', 'email _id')
+            .lean();
+            
+        console.log('Full project with populated users:', fullProject);
+        
+        // Ensure the project has the correct user structure
+        if (!fullProject.users.some(u => u._id.toString() === userId.toString())) {
+            console.log('Adding user to project');
+            fullProject.users = [loggedInUser, ...fullProject.users];
+        }
+        
         res.status(201).json({ project: fullProject });
     }
     catch(err){
