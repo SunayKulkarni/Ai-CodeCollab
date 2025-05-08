@@ -8,6 +8,7 @@ import projectModal from './models/project.model.js'
 import chatModel from './models/chat.model.js'
 import { generateResult } from './services/ai.service.js'
 import Message from './models/message.model.js'
+import cors from 'cors'
 dotenv.config()
 
 const port = process.env.PORT || 3000;
@@ -18,11 +19,10 @@ const server = http.createServer(app)
 // Socket.IO configuration
 const io = new Server(server, {
     cors: {
-        origin: process.env.NODE_ENV === 'production'
-            ? process.env.FRONTEND_URL
-            : '*',
+        origin: ['https://ai-code-collab.vercel.app', 'http://localhost:5173'],
         methods: ['GET', 'POST'],
-        credentials: true
+        credentials: true,
+        allowedHeaders: ['Content-Type', 'Authorization']
     },
     pingTimeout: 60000,
     pingInterval: 25000,
@@ -113,8 +113,13 @@ io.on('connection', (socket) => {
                 timestamp: new Date()
             });
 
-            await newMessage.save();
-            console.log('Message saved to database:', newMessage);
+            try {
+                const savedMessage = await newMessage.save();
+                console.log('Message saved to database successfully:', savedMessage);
+            } catch (saveError) {
+                console.error('Error saving message to database:', saveError);
+                throw saveError;
+            }
 
             // Broadcast to all clients in the project room
             io.to(projectId).emit('project-message', {
@@ -148,8 +153,14 @@ io.on('connection', (socket) => {
                         },
                         timestamp: new Date()
                     });
-                    await aiMessage.save();
-                    console.log('AI message saved to database');
+
+                    try {
+                        const savedAiMessage = await aiMessage.save();
+                        console.log('AI message saved to database successfully:', savedAiMessage);
+                    } catch (saveError) {
+                        console.error('Error saving AI message to database:', saveError);
+                        throw saveError;
+                    }
 
                     // Broadcast AI response to all clients in the project room
                     io.to(projectId).emit('project-message', {
@@ -203,5 +214,13 @@ server.listen(port, () => {
 
 // Export for Vercel
 export default server
+
+// CORS configuration
+app.use(cors({
+    origin: ['https://ai-code-collab.vercel.app', 'http://localhost:5173'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
  
