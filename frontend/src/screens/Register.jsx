@@ -17,8 +17,11 @@ const Register = ()=> {
     setError("");
     setIsLoading(true);
 
+    console.log('Form submitted');
+    console.log('API URL:', import.meta.env.VITE_API_URL);
+    console.log('Attempting registration with:', { email, password });
+
     try {
-      console.log('Attempting registration with:', { email, password });
       const res = await axios.post('/users/register', { 
           email, 
           password 
@@ -27,14 +30,22 @@ const Register = ()=> {
       console.log('Registration response:', res.data);
 
       if (res.data && res.data.token) {
+          console.log('Setting token and user data');
           localStorage.setItem('token', res.data.token);
           setUser(res.data.user);
+          console.log('Navigating to home page');
           navigate('/');
       } else {
+          console.error('Invalid response format:', res.data);
           throw new Error('Invalid response from server');
       }
     } catch (err) {
       console.error('Registration error:', err);
+      console.error('Error details:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status
+      });
       setError(err.response?.data?.message || 'Registration failed. Please try again.');
     } finally {
       setIsLoading(false);
