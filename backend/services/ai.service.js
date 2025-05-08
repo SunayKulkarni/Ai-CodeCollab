@@ -11,7 +11,7 @@ if (!process.env.GOOGLE_AI_KEY) {
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_KEY);
 
 const model = genAI.getGenerativeModel({
-    model: 'gemini-pro',
+    model: 'gemini-2.5-pro',
     generationConfig: {
         temperature: 0.4,
         topK: 40,
