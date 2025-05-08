@@ -18,14 +18,14 @@ const UserAuth = ({ children }) => {
 
             try {
                 console.log('Validating token...');
-                const response = await axios.get('/users/profile');
-                console.log('Profile response:', response.data);
+                const res = await axios.get('/users/profile');
+                console.log('Profile response:', res.data);
                 
-                if (response.data && response.data.user) {
-                    console.log('Setting user data from profile');
-                    setUser(response.data.user);
+                if (res.data && res.data.user) {
+                    console.log('Setting user data:', res.data.user);
+                    setUser(res.data.user);
                 } else {
-                    console.log('Invalid profile data, redirecting to login');
+                    console.log('Invalid profile response, redirecting to login');
                     localStorage.removeItem('token');
                     navigate('/login');
                 }
