@@ -45,7 +45,7 @@ const Login = ()=> {
         }
         
         setUser(res.data.user);
-        navigate('/projects/all');
+        navigate('/');
     }).catch((err) => {
         setError(err.response?.data?.message || "Failed to login. Please try again.");
     }).finally(() => {
