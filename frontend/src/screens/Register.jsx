@@ -33,8 +33,8 @@ const Register = ()=> {
           console.log('Setting token and user data');
           localStorage.setItem('token', res.data.token);
           setUser(res.data.user);
-          console.log('Navigating to home page');
-          navigate('/');
+          console.log('Navigating to projects page');
+          navigate('/projects/all');
       } else {
           console.error('Invalid response format:', res.data);
           throw new Error('Invalid response from server');
