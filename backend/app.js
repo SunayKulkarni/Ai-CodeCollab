@@ -13,25 +13,15 @@ const app = express();
 
 // CORS configuration
 const corsOptions = {
-    origin: [
-        'http://localhost:5173', // Vite dev server
-        'http://localhost:3000', // Local development
-        'https://ai-code-collab.vercel.app', // Your specific Vercel URL
-        'https://*.vercel.app'  // All Vercel deployments
-    ],
+    origin: process.env.NODE_ENV === 'production' 
+        ? [process.env.FRONTEND_URL] // Add your frontend URL in production
+        : '*',
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
-    exposedHeaders: ['Content-Range', 'X-Content-Range'],
-    preflightContinue: false,
-    optionsSuccessStatus: 204
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
 };
 
-// Apply CORS middleware
 app.use(cors(corsOptions));
-
-// Handle preflight requests
-app.options('*', cors(corsOptions));
 
 app.use(morgan('dev'))
 
