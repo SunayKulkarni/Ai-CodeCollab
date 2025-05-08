@@ -113,7 +113,7 @@ export const generateResult = async (prompt) => {
         const response = result.response;
         console.log('Processed response:', response);
         
-        const text = response.text();
+        const text = await response.text();
         console.log('Final AI Response:', text);
         
         if (!text) {
