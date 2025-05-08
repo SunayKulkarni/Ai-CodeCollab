@@ -86,6 +86,11 @@ const Home = () => {
     console.log('Filtering project:', project);
     console.log('Current user:', user);
     
+    if (!user || !user._id) {
+      console.log('No user ID available');
+      return false;
+    }
+
     const userId = user._id;
     // Handle both populated and non-populated user objects
     const users = project.users.map(u => {
@@ -236,48 +241,58 @@ const Home = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredProjects.map((project) => (
-              <div
-                key={project._id}
-                onClick={() => navigate('/project', { state: { project } })}
-                className="group bg-slate-800 rounded-xl shadow-lg hover:shadow-blue-500/10 transition-all duration-300 p-6 cursor-pointer border border-slate-700 hover:border-blue-500/30 transform hover:-translate-y-1"
-              >
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-lg font-semibold text-slate-200 group-hover:text-blue-400 transition-colors">
-                    {project.name}
-                  </h3>
-                  {project.owner === user._id && (
-                    <span className="px-2 py-1 bg-blue-900/30 text-blue-400 text-xs rounded-full font-medium">
-                      Owner
-                    </span>
-                  )}
+            {filteredProjects.map((project) => {
+              const isOwner = project.users[0] === user._id;
+              const isCollaborator = project.users.includes(user._id) && !isOwner;
+              
+              return (
+                <div
+                  key={project._id}
+                  onClick={() => navigate('/project', { state: { project } })}
+                  className="group bg-slate-800 rounded-xl shadow-lg hover:shadow-blue-500/10 transition-all duration-300 p-6 cursor-pointer border border-slate-700 hover:border-blue-500/30 transform hover:-translate-y-1"
+                >
+                  <div className="flex justify-between items-start mb-4">
+                    <h3 className="text-lg font-semibold text-slate-200 group-hover:text-blue-400 transition-colors">
+                      {project.name}
+                    </h3>
+                    {isOwner && (
+                      <span className="px-2 py-1 bg-blue-900/30 text-blue-400 text-xs rounded-full font-medium">
+                        Owner
+                      </span>
+                    )}
+                    {isCollaborator && (
+                      <span className="px-2 py-1 bg-green-900/30 text-green-400 text-xs rounded-full font-medium">
+                        Collaborator
+                      </span>
+                    )}
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-slate-300">
+                      <i className='ri-user-line'></i>
+                      <span className="text-sm">{project.users.length} Collaborators</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-slate-300">
+                      <i className='ri-time-line'></i>
+                      <span className="text-sm">
+                        {new Date(project.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div className="pt-3 border-t border-slate-700">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate('/project', { state: { project } });
+                        }}
+                        className="text-blue-400 hover:text-blue-300 text-sm font-medium flex items-center gap-1"
+                      >
+                        Open Project
+                        <i className='ri-arrow-right-line'></i>
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-slate-300">
-                    <i className='ri-user-line'></i>
-                    <span className="text-sm">{project.users.length} Collaborators</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-slate-300">
-                    <i className='ri-time-line'></i>
-                    <span className="text-sm">
-                      {new Date(project.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <div className="pt-3 border-t border-slate-700">
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate('/project', { state: { project } });
-                      }}
-                      className="text-blue-400 hover:text-blue-300 text-sm font-medium flex items-center gap-1"
-                    >
-                      Open Project
-                      <i className='ri-arrow-right-line'></i>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
