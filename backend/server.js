@@ -146,6 +146,23 @@ io.on('connection', (socket) => {
                     // Generate AI response
                     const prompt = message.substring(4).trim(); // Remove '@ai ' prefix
                     console.log('Sending prompt to AI:', prompt);
+                    
+                    // Send loading message
+                    const loadingMessageId = `loading_${Date.now()}`;
+                    const loadingMessage = await chatModel.create({
+                        _id: loadingMessageId,
+                        projectId,
+                        message: "AI is thinking...",
+                        sender: {
+                            _id: 'ai',
+                            email: 'ai@assistant.com',
+                            type: 'ai'
+                        },
+                        timestamp: new Date()
+                    });
+                    io.to(projectId).emit('project-message', loadingMessage);
+
+                    // Generate AI response
                     const aiResponse = await generateResult(prompt);
                     console.log('AI generated response:', aiResponse);
 
@@ -158,14 +175,17 @@ io.on('connection', (socket) => {
                         _id: aiMessageId,
                         projectId,
                         message: aiResponse,
-                    sender: {
+                        sender: {
                             _id: 'ai',
                             email: 'ai@assistant.com',
-                        type: 'ai'
+                            type: 'ai'
                         },
                         timestamp: new Date()
                     });
                     console.log('Successfully saved AI response to MongoDB Atlas. Document ID:', aiMessage._id);
+
+                    // Remove loading message
+                    await chatModel.findByIdAndDelete(loadingMessageId);
 
                     // Broadcast AI response to all clients
                     io.to(projectId).emit('project-message', aiMessage);
@@ -177,10 +197,10 @@ io.on('connection', (socket) => {
                         _id: errorMessageId,
                         projectId,
                         message: `Error: ${error.message}`,
-                    sender: {
+                        sender: {
                             _id: 'ai',
                             email: 'ai@assistant.com',
-                        type: 'ai'
+                            type: 'ai'
                         },
                         timestamp: new Date()
                     });
