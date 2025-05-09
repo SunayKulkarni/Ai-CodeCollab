@@ -210,14 +210,14 @@ const Project = () => {
         recieveMessage('chat-history', (history) => {
             console.log('Received chat history:', history);
             if (Array.isArray(history)) {
-                setMessages(history.map(msg => ({
+            setMessages(history.map(msg => ({
                     _id: msg._id,
                     message: msg.message,
                     sender: msg.sender,
                     type: msg.sender?.email === user?.email ? 'outgoing' : 'incoming',
                     timestamp: msg.timestamp,
                     projectId: msg.projectId
-                })));
+            })));
             }
         });
 
