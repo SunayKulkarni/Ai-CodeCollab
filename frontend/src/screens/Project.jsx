@@ -519,11 +519,18 @@ const Project = () => {
                     <head>
                         <title>Code Execution</title>
                         <script>
-                            ${fileContent}
+                            try {
+                                // Wrap the code in a function to catch errors
+                                (function() {
+                                    ${fileContent}
+                                })();
+                            } catch (error) {
+                                document.getElementById('output').innerHTML = '<div style="color: red; padding: 10px;">Error: ' + error.message + '</div>';
+                            }
                         </script>
                     </head>
                     <body>
-                        <div id="output"></div>
+                        <div id="output" style="padding: 20px; font-family: Arial, sans-serif;"></div>
                     </body>
                     </html>
                 `;
@@ -531,12 +538,57 @@ const Project = () => {
                 // Create a blob and open in new window
                 const blob = new Blob([htmlContent], { type: 'text/html' });
                 const url = URL.createObjectURL(blob);
-                window.open(url, '_blank');
+                const newWindow = window.open(url, '_blank');
+                
+                // Clean up the URL object after the window is closed
+                if (newWindow) {
+                    newWindow.onbeforeunload = () => {
+                        URL.revokeObjectURL(url);
+                    };
+                }
             } else if (fileExtension === 'html') {
                 // For HTML files, open directly
                 const blob = new Blob([fileContent], { type: 'text/html' });
                 const url = URL.createObjectURL(blob);
-                window.open(url, '_blank');
+                const newWindow = window.open(url, '_blank');
+                
+                // Clean up the URL object after the window is closed
+                if (newWindow) {
+                    newWindow.onbeforeunload = () => {
+                        URL.revokeObjectURL(url);
+                    };
+                }
+            } else if (fileExtension === 'css') {
+                // For CSS files, create a test HTML file
+                const htmlContent = `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>CSS Preview</title>
+                        <style>
+                            ${fileContent}
+                        </style>
+                    </head>
+                    <body>
+                        <div class="container">
+                            <h1>CSS Preview</h1>
+                            <p>This is a paragraph with the applied styles.</p>
+                            <button>Styled Button</button>
+                            <div class="box">Styled Box</div>
+                        </div>
+                    </body>
+                    </html>
+                `;
+                
+                const blob = new Blob([htmlContent], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const newWindow = window.open(url, '_blank');
+                
+                if (newWindow) {
+                    newWindow.onbeforeunload = () => {
+                        URL.revokeObjectURL(url);
+                    };
+                }
             } else {
                 // For other file types, show output in a modal
                 setRunOutput({
