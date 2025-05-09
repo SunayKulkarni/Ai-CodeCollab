@@ -3,14 +3,14 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-if (!process.env.GOOGLE_API_KEY) {
-    console.error('GOOGLE_API_KEY is not set in environment variables');
+if (!process.env.GOOGLE_AI_KEY) {
+    console.error('GOOGLE_AI_KEY is not set in environment variables');
     process.exit(1);
 }
 
-console.log('Initializing Google AI with key:', process.env.GOOGLE_API_KEY ? 'Key exists' : 'No key found');
+console.log('Initializing Google AI with key:', process.env.GOOGLE_AI_KEY ? 'Key exists' : 'No key found');
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_KEY);
 
 // Configure the model once
 const model = genAI.getGenerativeModel({
