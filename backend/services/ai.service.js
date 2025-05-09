@@ -13,6 +13,11 @@ console.log('Initializing Google AI with key:', process.env.GOOGLE_AI_KEY ? 'Key
 // Initialize the Google Generative AI
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_KEY);
 
+// Rate limiting setup
+let lastRequestTime = 0;
+const MIN_REQUEST_INTERVAL = 2000; // 2 seconds between requests
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+
 // List available models
 const listModels = async () => {
     try {
@@ -113,11 +118,20 @@ const model = genAI.getGenerativeModel({
 
 export const generateResult = async (prompt) => {
     try {
+        // Rate limiting
+        const now = Date.now();
+        const timeSinceLastRequest = now - lastRequestTime;
+        if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
+            console.log(`Rate limiting: waiting ${MIN_REQUEST_INTERVAL - timeSinceLastRequest}ms`);
+            await delay(MIN_REQUEST_INTERVAL - timeSinceLastRequest);
+        }
+        lastRequestTime = Date.now();
+
         console.log('Generating AI response for prompt:', prompt);
         
-        // Get the model - using the most cost-effective version
+        // Get the model - using the latest stable version
         const model = genAI.getGenerativeModel({ 
-            model: "gemini-1.5-flash-8b",
+            model: "gemini-1.5-pro",
             generationConfig: {
                 temperature: 0.4,
                 topK: 40,
