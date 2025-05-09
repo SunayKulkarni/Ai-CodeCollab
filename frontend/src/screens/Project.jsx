@@ -201,30 +201,34 @@ const Project = () => {
         // Notify others that user has joined
         sendMessage('user-joined', user);
 
+        // Set up chat history listener
         recieveMessage('chat-history', (history) => {
             console.log('Received chat history:', history);
-            setMessages(history.map(msg => ({
-                message: msg.message,
-                sender: msg.sender,
-                type: msg.sender?.email === user?.email ? 'outgoing' : 'incoming',
-                timestamp: msg.timestamp,
-                id: msg._id // Use MongoDB _id for deduplication
-            })));
+            if (Array.isArray(history)) {
+                setMessages(history.map(msg => ({
+                    message: msg.message,
+                    sender: msg.sender,
+                    type: msg.sender?.email === user?.email ? 'outgoing' : 'incoming',
+                    timestamp: msg.timestamp,
+                    id: msg._id // Use MongoDB _id for deduplication
+                })));
+            }
         });
 
+        // Set up message listener
         recieveMessage('project-message', data => {
             console.log('Received project message:', data);
             
             // Skip if we've already processed this message
-            if (processedMessageIds.has(data.id)) {
-                console.log('Message already processed, skipping:', data.id);
+            if (processedMessageIds.has(data._id)) {
+                console.log('Message already processed, skipping:', data._id);
                 return;
             }
 
             setMessages(prevMessages => {
                 // Check if message already exists to prevent duplicates
                 const messageExists = prevMessages.some(msg => 
-                    msg.id === data.id || // Check by ID first
+                    msg.id === data._id || // Check by ID first
                     (msg.message === data.message && 
                     msg.sender?.email === data.sender?.email &&
                     Math.abs(new Date(msg.timestamp) - new Date(data.timestamp)) < 1000)
@@ -236,7 +240,7 @@ const Project = () => {
                 }
 
                 // Add message ID to processed set
-                processedMessageIds.add(data.id);
+                processedMessageIds.add(data._id);
 
                 console.log('Previous messages:', prevMessages);
                 const newMessages = [...prevMessages, {
@@ -244,7 +248,7 @@ const Project = () => {
                     sender: data.sender,
                     type: data.sender?.email === user?.email ? 'outgoing' : 'incoming',
                     timestamp: data.timestamp,
-                    id: data.id
+                    id: data._id
                 }];
                 console.log('New messages:', newMessages);
                 return newMessages;
@@ -285,7 +289,7 @@ const Project = () => {
             disconnectSocket();
             processedMessageIds.clear();
         };
-    }, []); // Empty dependency array since we only want to set up listeners once
+    }, [project._id, user]); // Add dependencies to ensure proper reconnection
 
 
     useEffect(() => {
