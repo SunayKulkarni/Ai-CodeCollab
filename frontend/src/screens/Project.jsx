@@ -77,20 +77,25 @@ const Project = () => {
         const isAiMessage = message.toLowerCase().startsWith('@ai ');
         console.log('Sending message:', { message, sender: user, isAiMessage });
         
+        // Generate a unique ID for the message
+        const messageId = `msg_${Date.now()}`;
+        
         // Add message to local state immediately for better UX
         const newMessage = {
+            _id: messageId,
             message,
             sender: user,
             type: 'outgoing',
             timestamp: new Date(),
-            id: Date.now().toString() // Add unique ID for deduplication
+            projectId: project._id
         };
         
         setMessages(prevMessages => [...prevMessages, newMessage]);
         sendMessage('project-message', {
             message,
             sender: user,
-            id: newMessage.id
+            _id: messageId,
+            projectId: project._id
         });
         setMessage('');
     };
@@ -461,13 +466,10 @@ const Project = () => {
                                 console.log('Rendering message:', msg);
                                 const isOutgoing = msg.sender?.email === user?.email;
                                 const isAI = msg.sender?.type === 'ai';
-                                const isCollaborator = project.users?.some(u => 
-                                    (typeof u === 'object' ? u._id : u) === msg.sender?._id
-                                );
                                 
                                 return (
                                     <div
-                                        key={msg.id || index} // Use message ID if available, fallback to index
+                                        key={msg._id || index}
                                         className={`flex flex-col ${isOutgoing ? 'items-end' : 'items-start'} group mb-4`}
                                     >
                                         <span className="text-xs text-slate-400 mb-1 ml-2 mr-2">

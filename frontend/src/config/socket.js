@@ -53,6 +53,12 @@ export const recieveMessage = (event, callback) => {
     }
     socket.on(event, (data) => {
         console.log('Received socket message:', { event, data });
+        if (data && typeof data === 'object') {
+            // Ensure message has required fields
+            if (event === 'project-message' && !data._id) {
+                console.warn('Received message without _id:', data);
+            }
+        }
         callback(data);
     });
 };
