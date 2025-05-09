@@ -7,7 +7,6 @@ import mongoose from 'mongoose'
 import projectModal from './models/project.model.js'
 import chatModel from './models/chat.model.js'
 import { generateResult } from './services/ai.service.js'
-import Message from './models/message.model.js'
 import cors from 'cors'
 dotenv.config()
 
