@@ -102,7 +102,7 @@ export const generateResult = async (prompt) => {
             throw new Error('GOOGLE_AI_KEY is not set');
         }
 
-        console.log('Attempting to generate content with model:', model);
+        console.log('Attempting to generate content with model');
         const result = await model.generateContent(prompt);
         console.log('Raw AI response:', result);
         

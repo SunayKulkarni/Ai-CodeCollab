@@ -86,17 +86,17 @@ io.on('connection', (socket) => {
         socket.join(projectId);
         console.log(`Socket ${socket.id} joined room: ${projectId}`);
 
-    // Send chat history when user connects
+        // Send chat history when user connects
         chatModel.find({ projectId: projectId })
-        .sort({ timestamp: 1 })
+            .sort({ timestamp: 1 })
             .populate('sender._id', 'email _id')
-        .then(messages => {
+            .then(messages => {
                 console.log('Sending chat history:', messages);
-            socket.emit('chat-history', messages);
-        })
-        .catch(err => {
-            console.error('Error fetching chat history:', err);
-        });
+                socket.emit('chat-history', messages);
+            })
+            .catch(err => {
+                console.error('Error fetching chat history:', err);
+            });
     }
 
     socket.on('project-message', async (data) => {
@@ -124,7 +124,7 @@ io.on('connection', (socket) => {
             });
 
             const savedMessage = await chatModel.create({
-                _id: id, // Use the provided ID
+                _id: id,
                 projectId,
                 message,
                 sender: {
