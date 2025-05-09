@@ -518,19 +518,136 @@ const Project = () => {
                     <html>
                     <head>
                         <title>Code Execution</title>
+                        <style>
+                            body {
+                                font-family: Arial, sans-serif;
+                                margin: 0;
+                                padding: 20px;
+                                background: #1e1e1e;
+                                color: #fff;
+                            }
+                            #output {
+                                background: #2d2d2d;
+                                padding: 20px;
+                                border-radius: 8px;
+                                margin-top: 20px;
+                                min-height: 100px;
+                                white-space: pre-wrap;
+                                word-wrap: break-word;
+                            }
+                            .console-log {
+                                color: #4ec9b0;
+                                margin: 5px 0;
+                                font-family: 'Consolas', monospace;
+                            }
+                            .console-error {
+                                color: #f14c4c;
+                                margin: 5px 0;
+                                font-family: 'Consolas', monospace;
+                            }
+                            .console-warn {
+                                color: #dcdcaa;
+                                margin: 5px 0;
+                                font-family: 'Consolas', monospace;
+                            }
+                            .console-info {
+                                color: #569cd6;
+                                margin: 5px 0;
+                                font-family: 'Consolas', monospace;
+                            }
+                        </style>
                         <script>
+                            // Store original console methods
+                            const originalConsole = {
+                                log: console.log,
+                                error: console.error,
+                                warn: console.warn,
+                                info: console.info
+                            };
+
+                            // Function to format output
+                            function formatOutput(value) {
+                                if (value === null) return 'null';
+                                if (value === undefined) return 'undefined';
+                                
+                                if (typeof value === 'object') {
+                                    try {
+                                        return JSON.stringify(value, null, 2);
+                                    } catch (e) {
+                                        return String(value);
+                                    }
+                                }
+                                
+                                return String(value);
+                            }
+
+                            // Function to append to output
+                            function appendToOutput(type, args) {
+                                const output = document.getElementById('output');
+                                const div = document.createElement('div');
+                                div.className = 'console-' + type;
+                                
+                                // Format multiple arguments
+                                const formattedArgs = Array.from(args).map(arg => formatOutput(arg));
+                                div.textContent = formattedArgs.join(' ');
+                                
+                                output.appendChild(div);
+                                output.scrollTop = output.scrollHeight;
+                            }
+
+                            // Override console methods
+                            console.log = function(...args) {
+                                originalConsole.log.apply(console, args);
+                                appendToOutput('log', args);
+                            };
+
+                            console.error = function(...args) {
+                                originalConsole.error.apply(console, args);
+                                appendToOutput('error', args);
+                            };
+
+                            console.warn = function(...args) {
+                                originalConsole.warn.apply(console, args);
+                                appendToOutput('warn', args);
+                            };
+
+                            console.info = function(...args) {
+                                originalConsole.info.apply(console, args);
+                                appendToOutput('info', args);
+                            };
+
+                            // Add a global error handler
+                            window.onerror = function(message, source, lineno, colno, error) {
+                                appendToOutput('error', [\`Error: \${message}\nLine: \${lineno}, Column: \${colno}\`]);
+                                return false;
+                            };
+
+                            // Add a global unhandled promise rejection handler
+                            window.onunhandledrejection = function(event) {
+                                appendToOutput('error', [\`Unhandled Promise Rejection: \${event.reason}\`]);
+                            };
+
+                            // Execute the code
                             try {
-                                // Wrap the code in a function to catch errors
-                                (function() {
-                                    ${fileContent}
-                                })();
+                                // Create a safe execution environment
+                                const safeEval = new Function('console', \`
+                                    try {
+                                        ${fileContent}
+                                    } catch (error) {
+                                        console.error(error);
+                                    }
+                                \`);
+                                
+                                // Execute the code with our modified console
+                                safeEval(console);
                             } catch (error) {
-                                document.getElementById('output').innerHTML = '<div style="color: red; padding: 10px;">Error: ' + error.message + '</div>';
+                                appendToOutput('error', [error.message]);
                             }
                         </script>
                     </head>
                     <body>
-                        <div id="output" style="padding: 20px; font-family: Arial, sans-serif;"></div>
+                        <h2>Code Output:</h2>
+                        <div id="output"></div>
                     </body>
                     </html>
                 `;
