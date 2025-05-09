@@ -101,17 +101,23 @@ io.on('connection', (socket) => {
     socket.on('project-message', async (data) => {
         try {
             console.log('Received project message:', data);
-            const { message, sender, projectId, id } = data;
+            const { message, sender, projectId, _id } = data;
+
+            if (!_id || !message || !sender || !projectId) {
+                console.error('Invalid message data:', data);
+                return;
+            }
 
             // Check if message already exists in database
-            const existingMessage = await chatModel.findOne({ _id: id });
+            const existingMessage = await chatModel.findOne({ _id });
             if (existingMessage) {
-                console.log('Message already exists in database, skipping:', id);
+                console.log('Message already exists in database, skipping:', _id);
                 return;
             }
 
             // Save the message to the database
             console.log('Attempting to save message to MongoDB Atlas:', {
+                _id,
                 projectId,
                 message,
                 sender: {
@@ -123,7 +129,7 @@ io.on('connection', (socket) => {
             });
 
             const savedMessage = await chatModel.create({
-                _id: id,
+                _id,
                 projectId,
                 message,
                 sender: {
@@ -174,10 +180,10 @@ io.on('connection', (socket) => {
                         _id: aiMessageId,
                         projectId,
                         message: aiResponse,
-                    sender: {
+                        sender: {
                             _id: 'ai',
                             email: 'ai@assistant.com',
-                        type: 'ai'
+                            type: 'ai'
                         },
                         timestamp: new Date()
                     });
@@ -196,10 +202,10 @@ io.on('connection', (socket) => {
                         _id: errorMessageId,
                         projectId,
                         message: `Error: ${error.message}`,
-                    sender: {
+                        sender: {
                             _id: 'ai',
                             email: 'ai@assistant.com',
-                        type: 'ai'
+                            type: 'ai'
                         },
                         timestamp: new Date()
                     });
