@@ -248,6 +248,32 @@ const Project = () => {
                 // Add message ID to processed set
                 processedMessageIds.add(data._id);
 
+                // If this is a loading message, remove any existing loading messages
+                if (data.message === "AI is thinking...") {
+                    const filteredMessages = prevMessages.filter(msg => msg.message !== "AI is thinking...");
+                    return [...filteredMessages, {
+                        _id: data._id,
+                        message: data.message,
+                        sender: data.sender,
+                        type: 'incoming',
+                        timestamp: data.timestamp,
+                        projectId: data.projectId
+                    }];
+                }
+
+                // If this is an error message, remove any loading messages
+                if (data.message.startsWith("Error:")) {
+                    const filteredMessages = prevMessages.filter(msg => msg.message !== "AI is thinking...");
+                    return [...filteredMessages, {
+                        _id: data._id,
+                        message: data.message,
+                        sender: data.sender,
+                        type: 'incoming',
+                        timestamp: data.timestamp,
+                        projectId: data.projectId
+                    }];
+                }
+
                 console.log('Previous messages:', prevMessages);
                 const newMessages = [...prevMessages, {
                     _id: data._id,
