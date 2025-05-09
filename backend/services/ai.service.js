@@ -10,10 +10,8 @@ if (!process.env.GOOGLE_AI_KEY) {
 
 console.log('Initializing Google AI with key:', process.env.GOOGLE_AI_KEY ? 'Key exists' : 'No key found');
 
-// Initialize with the correct API version
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_KEY, {
-    apiVersion: 'v1beta'  // Use v1beta version
-});
+// Initialize without specifying API version (it will use the latest)
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_KEY);
 
 // List available models
 const listModels = async () => {
@@ -36,7 +34,7 @@ listModels().then(models => {
 
 // Configure the model once
 const model = genAI.getGenerativeModel({
-    model: 'gemini-pro',
+    model: 'gemini-1.0-pro',  // Updated model name
     generationConfig: {
         temperature: 0.4,
         topK: 40,
