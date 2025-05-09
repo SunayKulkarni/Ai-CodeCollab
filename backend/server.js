@@ -85,28 +85,28 @@ io.on('connection', (socket) => {
         socket.join(projectId);
         console.log(`Socket ${socket.id} joined room: ${projectId}`);
 
-        // Send chat history when user connects
+    // Send chat history when user connects
         chatModel.find({ projectId: projectId })
-            .sort({ timestamp: 1 })
+        .sort({ timestamp: 1 })
             .populate('sender._id', 'email _id')
-            .then(messages => {
+        .then(messages => {
                 console.log('Sending chat history:', messages);
-                socket.emit('chat-history', messages);
-            })
-            .catch(err => {
-                console.error('Error fetching chat history:', err);
-            });
+            socket.emit('chat-history', messages);
+        })
+        .catch(err => {
+            console.error('Error fetching chat history:', err);
+        });
     }
 
     socket.on('project-message', async (data) => {
         try {
             console.log('Received project message:', data);
-            const { message, sender, projectId, _id } = data;
+            const { message, sender, projectId, id } = data;
 
             // Check if message already exists in database
-            const existingMessage = await chatModel.findOne({ _id });
+            const existingMessage = await chatModel.findOne({ _id: id });
             if (existingMessage) {
-                console.log('Message already exists in database, skipping:', _id);
+                console.log('Message already exists in database, skipping:', id);
                 return;
             }
 
@@ -123,7 +123,7 @@ io.on('connection', (socket) => {
             });
 
             const savedMessage = await chatModel.create({
-                _id,
+                _id: id,
                 projectId,
                 message,
                 sender: {
@@ -153,7 +153,7 @@ io.on('connection', (socket) => {
                         projectId,
                         message: "AI is thinking...",
                         sender: {
-                            _id: 'ai_system',
+                            _id: 'ai',
                             email: 'ai@assistant.com',
                             type: 'ai'
                         },
@@ -174,10 +174,10 @@ io.on('connection', (socket) => {
                         _id: aiMessageId,
                         projectId,
                         message: aiResponse,
-                        sender: {
-                            _id: 'ai_system',
+                    sender: {
+                            _id: 'ai',
                             email: 'ai@assistant.com',
-                            type: 'ai'
+                        type: 'ai'
                         },
                         timestamp: new Date()
                     });
@@ -196,10 +196,10 @@ io.on('connection', (socket) => {
                         _id: errorMessageId,
                         projectId,
                         message: `Error: ${error.message}`,
-                        sender: {
-                            _id: 'ai_system',
+                    sender: {
+                            _id: 'ai',
                             email: 'ai@assistant.com',
-                            type: 'ai'
+                        type: 'ai'
                         },
                         timestamp: new Date()
                     });

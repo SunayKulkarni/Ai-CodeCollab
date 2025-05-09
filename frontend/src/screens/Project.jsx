@@ -90,7 +90,7 @@ const Project = () => {
             projectId: project._id
         };
         
-        // Don't add to local state here - wait for socket response
+        setMessages(prevMessages => [...prevMessages, newMessage]);
         sendMessage('project-message', {
             message,
             sender: user,
@@ -211,12 +211,11 @@ const Project = () => {
             console.log('Received chat history:', history);
             if (Array.isArray(history)) {
                 setMessages(history.map(msg => ({
-                    _id: msg._id,
                     message: msg.message,
                     sender: msg.sender,
                     type: msg.sender?.email === user?.email ? 'outgoing' : 'incoming',
                     timestamp: msg.timestamp,
-                    projectId: msg.projectId
+                    id: msg._id // Use MongoDB _id for deduplication
                 })));
             }
         });
@@ -234,7 +233,7 @@ const Project = () => {
             setMessages(prevMessages => {
                 // Check if message already exists to prevent duplicates
                 const messageExists = prevMessages.some(msg => 
-                    msg._id === data._id || // Check by ID first
+                    msg.id === data._id || // Check by ID first
                     (msg.message === data.message && 
                     msg.sender?.email === data.sender?.email &&
                     Math.abs(new Date(msg.timestamp) - new Date(data.timestamp)) < 1000)
@@ -248,40 +247,13 @@ const Project = () => {
                 // Add message ID to processed set
                 processedMessageIds.add(data._id);
 
-                // If this is a loading message, remove any existing loading messages
-                if (data.message === "AI is thinking...") {
-                    const filteredMessages = prevMessages.filter(msg => msg.message !== "AI is thinking...");
-                    return [...filteredMessages, {
-                        _id: data._id,
-                        message: data.message,
-                        sender: data.sender,
-                        type: 'incoming',
-                        timestamp: data.timestamp,
-                        projectId: data.projectId
-                    }];
-                }
-
-                // If this is an error message, remove any loading messages
-                if (data.message.startsWith("Error:")) {
-                    const filteredMessages = prevMessages.filter(msg => msg.message !== "AI is thinking...");
-                    return [...filteredMessages, {
-                        _id: data._id,
-                        message: data.message,
-                        sender: data.sender,
-                        type: 'incoming',
-                        timestamp: data.timestamp,
-                        projectId: data.projectId
-                    }];
-                }
-
                 console.log('Previous messages:', prevMessages);
                 const newMessages = [...prevMessages, {
-                    _id: data._id,
                     message: data.message,
                     sender: data.sender,
                     type: data.sender?.email === user?.email ? 'outgoing' : 'incoming',
                     timestamp: data.timestamp,
-                    projectId: data.projectId
+                    id: data._id
                 }];
                 console.log('New messages:', newMessages);
                 return newMessages;
