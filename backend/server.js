@@ -159,7 +159,7 @@ io.on('connection', (socket) => {
                         projectId,
                         message: "AI is thinking...",
                         sender: {
-                            _id: 'ai',
+                            _id: 'ai_system',
                             email: 'ai@assistant.com',
                             type: 'ai'
                         },
@@ -181,7 +181,7 @@ io.on('connection', (socket) => {
                         projectId,
                         message: aiResponse,
                         sender: {
-                            _id: 'ai',
+                            _id: 'ai_system',
                             email: 'ai@assistant.com',
                             type: 'ai'
                         },
@@ -203,7 +203,7 @@ io.on('connection', (socket) => {
                         projectId,
                         message: `Error: ${error.message}`,
                         sender: {
-                            _id: 'ai',
+                            _id: 'ai_system',
                             email: 'ai@assistant.com',
                             type: 'ai'
                         },

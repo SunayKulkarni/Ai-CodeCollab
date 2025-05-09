@@ -248,8 +248,13 @@ const Project = () => {
                 // Add message ID to processed set
                 processedMessageIds.add(data._id);
 
-                console.log('Previous messages:', prevMessages);
-                const newMessages = [...prevMessages, {
+                // Remove loading message if it exists
+                const filteredMessages = prevMessages.filter(msg => 
+                    !msg._id.startsWith('loading_') || msg._id === data._id
+                );
+
+                console.log('Previous messages:', filteredMessages);
+                const newMessages = [...filteredMessages, {
                     _id: data._id,
                     message: data.message,
                     sender: data.sender,
@@ -467,7 +472,7 @@ const Project = () => {
                             {messages.map((msg, index) => {
                                 console.log('Rendering message:', msg);
                                 const isOutgoing = msg.sender?.email === user?.email;
-                                const isAI = msg.sender?.type === 'ai';
+                                const isAI = msg.sender?.type === 'ai' || msg.sender?.email === 'ai@assistant.com';
                                 
                                 return (
                                     <div
