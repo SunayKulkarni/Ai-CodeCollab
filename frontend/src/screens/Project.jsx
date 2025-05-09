@@ -90,7 +90,7 @@ const Project = () => {
             projectId: project._id
         };
         
-        setMessages(prevMessages => [...prevMessages, newMessage]);
+        // Don't add to local state here - wait for socket response
         sendMessage('project-message', {
             message,
             sender: user,
@@ -211,11 +211,12 @@ const Project = () => {
             console.log('Received chat history:', history);
             if (Array.isArray(history)) {
                 setMessages(history.map(msg => ({
+                    _id: msg._id,
                     message: msg.message,
                     sender: msg.sender,
                     type: msg.sender?.email === user?.email ? 'outgoing' : 'incoming',
                     timestamp: msg.timestamp,
-                    id: msg._id // Use MongoDB _id for deduplication
+                    projectId: msg.projectId
                 })));
             }
         });
@@ -233,7 +234,7 @@ const Project = () => {
             setMessages(prevMessages => {
                 // Check if message already exists to prevent duplicates
                 const messageExists = prevMessages.some(msg => 
-                    msg.id === data._id || // Check by ID first
+                    msg._id === data._id || // Check by ID first
                     (msg.message === data.message && 
                     msg.sender?.email === data.sender?.email &&
                     Math.abs(new Date(msg.timestamp) - new Date(data.timestamp)) < 1000)
@@ -249,11 +250,12 @@ const Project = () => {
 
                 console.log('Previous messages:', prevMessages);
                 const newMessages = [...prevMessages, {
+                    _id: data._id,
                     message: data.message,
                     sender: data.sender,
                     type: data.sender?.email === user?.email ? 'outgoing' : 'incoming',
                     timestamp: data.timestamp,
-                    id: data._id
+                    projectId: data.projectId
                 }];
                 console.log('New messages:', newMessages);
                 return newMessages;

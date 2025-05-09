@@ -12,7 +12,7 @@ const chatSchema = new mongoose.Schema({
     },
     sender: {
         _id: {
-            type: mongoose.Schema.Types.ObjectId,
+            type: mongoose.Schema.Types.Mixed,
             ref: 'User'
         },
         email: {
