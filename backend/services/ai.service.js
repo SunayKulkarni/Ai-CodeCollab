@@ -10,7 +10,7 @@ if (!process.env.GOOGLE_AI_KEY) {
 
 console.log('Initializing Google AI with key:', process.env.GOOGLE_AI_KEY ? 'Key exists' : 'No key found');
 
-// Initialize with the correct API version
+// Initialize the Google Generative AI
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_KEY);
 
 // List available models
@@ -115,19 +115,19 @@ export const generateResult = async (prompt) => {
     try {
         console.log('Generating AI response for prompt:', prompt);
         
-        // Log the model being used
-        console.log('Using model:', model.model);
-        
-        // Use the pre-configured model with the correct request format
-        const result = await model.generateContent({
-            contents: [{
-                role: "user",
-                parts: [{
-                    text: prompt
-                }]
-            }]
+        // Get the model - using the latest stable version
+        const model = genAI.getGenerativeModel({ 
+            model: "gemini-1.5-pro",
+            generationConfig: {
+                temperature: 0.4,
+                topK: 40,
+                topP: 0.95,
+                maxOutputTokens: 8192,
+            }
         });
         
+        // Generate content
+        const result = await model.generateContent(prompt);
         const response = await result.response;
         const text = response.text();
         
