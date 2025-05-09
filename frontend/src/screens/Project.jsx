@@ -750,7 +750,34 @@ const Project = () => {
                             <RiAddLine className="text-slate-400 hover:text-blue-400" />
                         </button>
                     </div>
-                    {/* File Tree (recursive) */}
+
+                    {/* New File Input */}
+                    {isCreatingFile && (
+                        <div className="p-2 border-b border-slate-700/50">
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={newFileName}
+                                    onChange={(e) => setNewFileName(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleCreateFile();
+                                        if (e.key === 'Escape') setIsCreatingFile(false);
+                                    }}
+                                    placeholder="Enter file name..."
+                                    className="flex-grow px-3 py-1.5 bg-slate-700/50 border border-slate-600 rounded text-sm text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                    autoFocus
+                                />
+                                <button
+                                    onClick={handleCreateFile}
+                                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm transition-colors"
+                                >
+                                    Create
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* File Tree */}
                     <div className="flex-grow overflow-y-auto p-2 space-y-1">
                         {renderFileTree(fileTree)}
                     </div>
@@ -776,6 +803,119 @@ const Project = () => {
                                 {isRunning ? 'Running...' : 'Run Code'}
                             </span>
                         </button>
+                    </div>
+
+                    {/* Editor Tabs */}
+                    <div className="flex border-b border-slate-800 bg-slate-800/50 overflow-x-auto">
+                        {openFiles.map((file) => (
+                            <div 
+                                key={file} 
+                                className={`group flex items-center gap-2 px-4 py-2 border-r border-slate-700/50 min-w-[120px] max-w-[200px]
+                                    ${currentFile === file 
+                                        ? 'bg-slate-900 text-blue-300' 
+                                        : 'bg-slate-800/50 text-slate-400 hover:text-slate-300'
+                                    }`}
+                            >
+                                <button
+                                    onClick={() => setCurrentFile(file)}
+                                    className="flex items-center gap-2 focus:outline-none flex-grow min-w-0"
+                                >
+                                    <i className="ri-file-3-line text-sm flex-shrink-0"></i>
+                                    <span className="text-sm truncate">{file}</span>
+                                </button>
+                                <button 
+                                    onClick={() => handleCloseFile(file)}
+                                    className="p-1 rounded hover:bg-red-900/50 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
+                                >
+                                    <i className="ri-close-line text-sm text-red-400 hover:text-red-300"></i>
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Editor Area */}
+                    <div className="flex-grow flex w-full h-full bg-slate-900/80 rounded-2xl shadow-xl border border-slate-700/60 overflow-hidden">
+                        {/* Line Numbers */}
+                        <div
+                            ref={lineNumberRef}
+                            className="line-numbers bg-slate-800/70 border-r border-slate-700/50 text-slate-500 text-sm font-mono select-none overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                            style={{
+                                width: '3rem',
+                                userSelect: 'none',
+                                textAlign: 'right',
+                                height: '100%',
+                                position: 'relative',
+                                background: 'linear-gradient(90deg, #1e293b 90%, #334155 100%)',
+                                lineHeight: '1.5em',
+                                fontSize: '14px'
+                            }}
+                        >
+                            {getFileNodeByPath(fileTree, currentFile)?.contents?.split('\n').map((_, i) => (
+                                <div
+                                    key={i}
+                                    style={{ 
+                                        height: '1.5em', 
+                                        lineHeight: '1.5em', 
+                                        transition: 'background 0.2s',
+                                        padding: '0 0.5rem'
+                                    }}
+                                    className={`${activeLine === i + 1 ? 'bg-blue-900/40 text-blue-300 font-bold' : 'hover:bg-slate-700/40'}`}
+                                >
+                                    {i + 1}
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Code Editor */}
+                        <div
+                            className="flex-grow h-full overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                            style={{ position: 'relative' }}
+                        >
+                            <textarea
+                                ref={textareaRef}
+                                className="w-full h-full min-h-0 px-4 py-4 border-none outline-none font-mono text-sm bg-transparent text-slate-200 resize-none focus:ring-0 focus:outline-none"
+                                value={getFileNodeByPath(fileTree, currentFile)?.contents || ''}
+                                onChange={(e) => {
+                                    // Update the nested fileTree immutably
+                                    const updateTree = (tree, pathArr, value) => {
+                                        if (pathArr.length === 1) {
+                                            if (tree[pathArr[0]]?.file) {
+                                                return { ...tree, [pathArr[0]]: { ...tree[pathArr[0]], file: { ...tree[pathArr[0]].file, contents: value } } };
+                                            } else if (tree[pathArr[0]]) {
+                                                return { ...tree, [pathArr[0]]: { ...tree[pathArr[0]], contents: value } };
+                                            }
+                                            return tree;
+                                        }
+                                        const [head, ...rest] = pathArr;
+                                        return {
+                                            ...tree,
+                                            [head]: {
+                                                ...tree[head],
+                                                contents: updateTree(tree[head].contents || tree[head], rest, value)
+                                            }
+                                        };
+                                    };
+                                    setFileTree(prev => updateTree(prev, currentFile.split('/'), e.target.value));
+                                    updateActiveLine();
+                                }}
+                                spellCheck="false"
+                                style={{
+                                    lineHeight: '1.5em',
+                                    tabSize: 4,
+                                    fontFamily: 'Fira Mono, Menlo, Monaco, Consolas, monospace',
+                                    height: '100%',
+                                    minHeight: 0,
+                                    resize: 'none',
+                                    overflow: 'auto',
+                                    background: 'transparent',
+                                    fontSize: '14px',
+                                    padding: '0.5rem'
+                                }}
+                                onScroll={handleEditorScroll}
+                                onClick={updateActiveLine}
+                                onKeyUp={updateActiveLine}
+                            />
+                        </div>
                     </div>
 
                     {/* Run Output Modal */}
