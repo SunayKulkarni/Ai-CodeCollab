@@ -15,7 +15,7 @@ const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_KEY);
 
 // Rate limiting setup
 let lastRequestTime = 0;
-const MIN_REQUEST_INTERVAL = 2000; // 2 seconds between requests
+const MIN_REQUEST_INTERVAL = 5000; // 5 seconds between requests
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 // List available models
@@ -129,9 +129,9 @@ export const generateResult = async (prompt) => {
 
         console.log('Generating AI response for prompt:', prompt);
         
-        // Get the model - using the latest stable version
+        // Get the model - using Gemini 2.0 Flash
         const model = genAI.getGenerativeModel({ 
-            model: "gemini-1.5-pro",
+            model: "gemini-2.0-flash",
             generationConfig: {
                 temperature: 0.4,
                 topK: 40,
