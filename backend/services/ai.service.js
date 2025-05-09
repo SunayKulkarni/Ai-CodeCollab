@@ -3,15 +3,16 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-if (!process.env.GOOGLE_AI_KEY) {
-    console.error('GOOGLE_AI_KEY is not set in environment variables');
+if (!process.env.GOOGLE_API_KEY) {
+    console.error('GOOGLE_API_KEY is not set in environment variables');
     process.exit(1);
 }
 
-console.log('Initializing Google AI with key:', process.env.GOOGLE_AI_KEY ? 'Key exists' : 'No key found');
+console.log('Initializing Google AI with key:', process.env.GOOGLE_API_KEY ? 'Key exists' : 'No key found');
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_KEY);
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 
+// Configure the model once
 const model = genAI.getGenerativeModel({
     model: 'gemini-pro',
     generationConfig: {
@@ -91,43 +92,18 @@ const model = genAI.getGenerativeModel({
 
 
 export const generateResult = async (prompt) => {
-    if (!prompt) {
-        throw new Error('Prompt is required');
-    }
-
-    console.log(`Generating content for prompt: ${prompt}`);
-
     try {
-        if (!process.env.GOOGLE_AI_KEY) {
-            throw new Error('GOOGLE_AI_KEY is not set');
-        }
-
-        console.log('Attempting to generate content with model');
+        console.log('Generating AI response for prompt:', prompt);
+        
+        // Use the pre-configured model
         const result = await model.generateContent(prompt);
-        console.log('Raw AI response:', result);
-        
-        if (!result || !result.response) {
-            throw new Error('No response received from AI model');
-        }
-
-        const response = result.response;
-        console.log('Processed response:', response);
-        
+        const response = await result.response;
         const text = response.text();
-        console.log('Final AI Response:', text);
         
-        if (!text) {
-            throw new Error('Empty response from AI model');
-        }
-
+        console.log('AI generated response:', text);
         return text;
     } catch (error) {
-        console.error('AI Generation Error Details:', {
-            name: error.name,
-            message: error.message,
-            stack: error.stack,
-            details: error.details || 'No additional details'
-        });
+        console.error('Error generating AI response:', error);
         throw new Error(`AI Generation failed: ${error.message}`);
     }
 };
