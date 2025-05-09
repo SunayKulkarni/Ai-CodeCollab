@@ -3,8 +3,20 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Validate API key format
+const validateApiKey = (key) => {
+    if (!key) return false;
+    // Google API keys typically start with "AI" and are 39 characters long
+    return /^AI[a-zA-Z0-9_-]{37}$/.test(key);
+};
+
 if (!process.env.GOOGLE_AI_KEY) {
     console.error('GOOGLE_AI_KEY is not set in environment variables');
+    process.exit(1);
+}
+
+if (!validateApiKey(process.env.GOOGLE_AI_KEY)) {
+    console.error('Invalid GOOGLE_AI_KEY format. Please check your API key.');
     process.exit(1);
 }
 
