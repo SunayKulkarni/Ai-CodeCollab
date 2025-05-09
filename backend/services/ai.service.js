@@ -115,9 +115,9 @@ export const generateResult = async (prompt) => {
     try {
         console.log('Generating AI response for prompt:', prompt);
         
-        // Get the model - using the latest stable version
+        // Get the model - using the most cost-effective version
         const model = genAI.getGenerativeModel({ 
-            model: "gemini-1.5-pro",
+            model: "gemini-1.5-flash-8b",
             generationConfig: {
                 temperature: 0.4,
                 topK: 40,
