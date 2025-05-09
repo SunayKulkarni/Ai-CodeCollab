@@ -10,7 +10,29 @@ if (!process.env.GOOGLE_AI_KEY) {
 
 console.log('Initializing Google AI with key:', process.env.GOOGLE_AI_KEY ? 'Key exists' : 'No key found');
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_KEY);
+// Initialize with the correct API version
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_KEY, {
+    apiVersion: 'v1beta'  // Use v1beta version
+});
+
+// List available models
+const listModels = async () => {
+    try {
+        const models = await genAI.listModels();
+        console.log('Available models:', models);
+        return models;
+    } catch (error) {
+        console.error('Error listing models:', error);
+        throw error;
+    }
+};
+
+// Call listModels when the service starts
+listModels().then(models => {
+    console.log('Models available:', models);
+}).catch(error => {
+    console.error('Failed to list models:', error);
+});
 
 // Configure the model once
 const model = genAI.getGenerativeModel({
@@ -95,8 +117,18 @@ export const generateResult = async (prompt) => {
     try {
         console.log('Generating AI response for prompt:', prompt);
         
+        // Log the model being used
+        console.log('Using model:', model.model);
+        
         // Use the pre-configured model
-        const result = await model.generateContent(prompt);
+        const result = await model.generateContent({
+            contents: [{
+                parts: [{
+                    text: prompt
+                }]
+            }]
+        });
+        
         const response = await result.response;
         const text = response.text();
         
