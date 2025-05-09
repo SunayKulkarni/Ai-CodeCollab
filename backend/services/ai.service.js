@@ -1,7 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import dotenv from 'dotenv';
-import fs from 'fs/promises';
-import path from 'path';
 
 dotenv.config();
 
@@ -31,51 +29,6 @@ const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_KEY);
 let lastRequestTime = 0;
 const MIN_REQUEST_INTERVAL = 5000; // 5 seconds between requests
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
-
-// Helper function to extract code blocks from AI response
-const extractCodeBlocks = (text) => {
-    const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
-    const blocks = [];
-    let match;
-    
-    while ((match = codeBlockRegex.exec(text)) !== null) {
-        blocks.push({
-            language: match[1] || 'plaintext',
-            code: match[2].trim()
-        });
-    }
-    
-    return blocks;
-};
-
-// Helper function to save code to file
-const saveCodeToFile = async (code, language, filename) => {
-    const extension = language === 'javascript' ? 'js' : 
-                     language === 'typescript' ? 'ts' : 
-                     language === 'python' ? 'py' : 
-                     language === 'html' ? 'html' : 
-                     language === 'css' ? 'css' : 'txt';
-    
-    const fullFilename = filename || `ai_generated_${Date.now()}.${extension}`;
-    const workspaceDir = path.join(process.cwd(), 'workspace');
-    
-    // Ensure workspace directory exists
-    try {
-        await fs.mkdir(workspaceDir, { recursive: true });
-    } catch (error) {
-        console.error('Error creating workspace directory:', error);
-    }
-    
-    const filePath = path.join(workspaceDir, fullFilename);
-    
-    try {
-        await fs.writeFile(filePath, code);
-        return { success: true, filePath, filename: fullFilename };
-    } catch (error) {
-        console.error('Error saving file:', error);
-        return { success: false, error: error.message };
-    }
-};
 
 // List available models
 const listModels = async () => {
@@ -174,13 +127,9 @@ const model = genAI.getGenerativeModel({
 //   - **Full-stack**: Combine both with clear folder separation and integration logic
 // Do not explain the code unless the user explicitly asks for it.
 
+
 export const generateResult = async (prompt) => {
     try {
-        // Input validation
-        if (!prompt || typeof prompt !== 'string') {
-            throw new Error('Invalid prompt: must be a non-empty string');
-        }
-
         // Rate limiting
         const now = Date.now();
         const timeSinceLastRequest = now - lastRequestTime;
@@ -208,27 +157,8 @@ export const generateResult = async (prompt) => {
         const response = await result.response;
         const text = response.text();
         
-        // Extract code blocks
-        const codeBlocks = extractCodeBlocks(text);
-        
-        // Save code blocks to files
-        const savedFiles = [];
-        for (const block of codeBlocks) {
-            const saveResult = await saveCodeToFile(block.code, block.language);
-            if (saveResult.success) {
-                savedFiles.push({
-                    filename: saveResult.filename,
-                    language: block.language
-                });
-            }
-        }
-        
         console.log('AI generated response:', text);
-        return {
-            text,
-            codeBlocks,
-            savedFiles
-        };
+        return text;
     } catch (error) {
         console.error('Error generating AI response:', error);
         throw new Error(`AI Generation failed: ${error.message}`);
